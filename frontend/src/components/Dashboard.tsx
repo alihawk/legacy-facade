@@ -1,101 +1,161 @@
-import { useNavigate } from "react-router-dom";
-import { Database, ArrowRight } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+"use client"
+
+import { useNavigate } from "react-router-dom"
+import { Database, ArrowRight, BarChart3, Activity, TrendingUp, Sparkles, Zap } from "lucide-react"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 
 interface DashboardProps {
-  resources: any[];
+  resources: any[]
 }
 
 export default function Dashboard({ resources }: DashboardProps) {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
+
+  const totalFields = resources.reduce((sum: number, r: any) => sum + r.fields.length, 0)
+  const totalOperations = resources.reduce((sum: number, r: any) => sum + r.operations.length, 0)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-emerge">
+      <div className="relative overflow-hidden rounded-2xl p-8 text-white bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500">
+        {/* Decorative elements - purely visual, no interaction */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl pointer-events-none" />
+        <div className="absolute top-1/2 right-1/4 w-32 h-32 bg-purple-400/20 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-sm">
+              <Sparkles className="w-6 h-6 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold">Welcome to Your Portal</h1>
+          </div>
+          <p className="text-white/85 text-lg max-w-2xl leading-relaxed">
+            Your legacy API has been successfully resurrected into a modern, intuitive interface. Select a resource
+            below to start managing your data.
+          </p>
+        </div>
+      </div>
+
+      {/* Stats Grid - Clean hover effects */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <Card className="group bg-white border border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Total Resources</p>
+                <p className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
+                  {resources.length}
+                </p>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-indigo-100 to-indigo-50 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+                <Database className="w-7 h-7 text-indigo-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="group bg-white border border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Total Fields</p>
+                <p className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-emerald-400 bg-clip-text text-transparent">
+                  {totalFields}
+                </p>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+                <BarChart3 className="w-7 h-7 text-emerald-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="group bg-white border border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Operations</p>
+                <p className="text-4xl font-bold bg-gradient-to-r from-amber-600 to-amber-400 bg-clip-text text-transparent">
+                  {totalOperations}
+                </p>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-amber-100 to-amber-50 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+                <Activity className="w-7 h-7 text-amber-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="group bg-white border border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">API Coverage</p>
+                <p className="text-4xl font-bold bg-gradient-to-r from-rose-600 to-rose-400 bg-clip-text text-transparent">
+                  100%
+                </p>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-rose-100 to-rose-50 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+                <TrendingUp className="w-7 h-7 text-rose-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Resources Section */}
       <div>
-        <h2 className="text-3xl font-bold text-white mb-2">
-          Welcome to Your Resurrected Portal
-        </h2>
-        <p className="text-gray-400">
-          Your legacy API has been transformed into a modern interface. Select a
-          resource from the sidebar to begin.
-        </p>
-      </div>
-
-      {/* Resource Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {resources.map((resource) => (
-          <Card
-            key={resource.name}
-            className="bg-slate-900 border-slate-700 hover:border-green-500/50 transition cursor-pointer group"
-            onClick={() => navigate(`/portal/${resource.name}`)}
-          >
-            <CardHeader>
-              <CardTitle className="text-lg text-white flex items-center gap-3">
-                <Database className="w-6 h-6 text-green-500" />
-                {resource.displayName}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Fields:</span>
-                  <span className="text-white font-medium">
-                    {resource.fields.length}
-                  </span>
+        <div className="flex items-center gap-2 mb-5">
+          <Zap className="w-5 h-5 text-indigo-600" />
+          <h2 className="text-xl font-semibold text-gray-900">Your Resources</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {resources.map((resource, index) => (
+            <Card
+              key={resource.name}
+              className="group bg-white border border-gray-100 shadow-md hover:shadow-2xl hover:border-indigo-200 transition-all duration-300 cursor-pointer hover:-translate-y-1"
+              onClick={() => navigate(`/portal/${resource.name}`)}
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gradient-to-br from-indigo-100 to-purple-50 rounded-xl group-hover:from-indigo-200 group-hover:to-purple-100 transition-all duration-300 group-hover:scale-110">
+                    <Database className="w-6 h-6 text-indigo-600" />
+                  </div>
+                  <CardTitle className="text-xl text-gray-900 group-hover:text-indigo-600 transition-colors">
+                    {resource.displayName}
+                  </CardTitle>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Operations:</span>
-                  <span className="text-white font-medium">
-                    {resource.operations.join(", ")}
-                  </span>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Fields</span>
+                    <span className="font-semibold text-gray-900 bg-gray-100 px-2.5 py-0.5 rounded-full">
+                      {resource.fields.length}
+                    </span>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {resource.operations.map((op: string) => (
+                      <span
+                        key={op}
+                        className="text-xs px-3 py-1.5 bg-gray-50 text-gray-600 rounded-full border border-gray-200 capitalize font-medium"
+                      >
+                        {op}
+                      </span>
+                    ))}
+                  </div>
+                  <Button className="w-full mt-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/25 group-hover:shadow-xl group-hover:shadow-indigo-500/30 transition-all duration-300">
+                    <span>View Records</span>
+                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </Button>
                 </div>
-                <Button className="w-full mt-2 bg-slate-800 hover:bg-green-600 group-hover:bg-green-600 transition">
-                  View Records
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-        <Card className="bg-slate-900 border-slate-700">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-green-500 mb-2">
-                {resources.length}
-              </div>
-              <div className="text-sm text-gray-400">Resources Available</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-slate-900 border-slate-700">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-green-500 mb-2">
-                {resources.reduce(
-                  (sum: number, r: any) => sum + r.fields.length,
-                  0
-                )}
-              </div>
-              <div className="text-sm text-gray-400">Total Fields</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-slate-900 border-slate-700">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-green-500 mb-2">100%</div>
-              <div className="text-sm text-gray-400">API Coverage</div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
-  );
+  )
 }

@@ -1,0 +1,28 @@
+{
+  "name": "lint-on-save",
+  "description": "Auto-lint frontend TypeScript and backend Python on save",
+  "enabled": true,
+  "triggers": [
+    {
+      "type": "onFileSave",
+      "patterns": [
+        "frontend/src/**/*.{ts,tsx}",
+        "backend/**/*.py"
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "type": "command",
+      "cwd": "frontend",
+      "command": "npm",
+      "args": ["run", "lint", "--", "--fix"]
+    },
+    {
+      "type": "command",
+      "cwd": "backend",
+      "command": "python",
+      "args": ["-m", "ruff", "check", "--fix", "."]
+    }
+  ]
+}

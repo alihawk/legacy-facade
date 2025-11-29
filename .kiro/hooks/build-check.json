@@ -1,0 +1,19 @@
+{
+  "name": "build-check",
+  "description": "Verify frontend builds without errors",
+  "enabled": false,
+  "triggers": [
+    {
+      "type": "manual",
+      "label": "🏗️ Build Frontend"
+    }
+  ],
+  "actions": [
+    {
+      "type": "command",
+      "cwd": "frontend",
+      "command": "npm",
+      "args": ["run", "build"]
+    }
+  ]
+}

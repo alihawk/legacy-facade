@@ -1,130 +1,119 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Menu, Skull } from "lucide-react";
-import Sidebar from "@/components/Sidebar";
-import ResourceList from "@/components/ResourceList";
-import ResourceDetail from "@/components/ResourceDetail";
-import ResourceForm from "@/components/ResourceForm";
-import Dashboard from "@/components/Dashboard";
-import { LoadingSpinner } from "@/components/LoadingState";
+"use client"
+
+import { useState, useEffect } from "react"
+import { Routes, Route, useNavigate, useParams } from "react-router-dom"
+import Sidebar from "@/components/Sidebar"
+import Dashboard from "@/components/Dashboard"
+import ResourceList from "@/components/ResourceList"
+import ResourceDetail from "@/components/ResourceDetail"
+import ResourceForm from "@/components/ResourceForm"
+import ResourceActivity from "@/components/ResourceActivity"
+import ResourceSettings from "@/components/ResourceSettings"
+
+interface ResourceSchema {
+  name: string
+  displayName: string
+  endpoint: string
+  primaryKey: string
+  fields: { name: string; type: string; displayName: string }[]
+  operations: string[]
+}
 
 export default function PortalPage() {
-  const { resource, id } = useParams();
-  const navigate = useNavigate();
-  const [schema, setSchema] = useState<any | null>(null);
-  const [selectedResource, setSelectedResource] = useState<any | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [mode, setMode] = useState<"list" | "detail" | "create" | "edit">(
-    "list"
-  );
+  const [resources, setResources] = useState<ResourceSchema[]>([])
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const navigate = useNavigate()
 
   useEffect(() => {
-    const stored = localStorage.getItem("app-schema");
-    if (!stored) {
-      navigate("/");
-      return;
+    const stored = localStorage.getItem("app-schema")
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      setResources(parsed.resources || [])
+    } else {
+      navigate("/")
     }
+  }, [navigate])
 
-    const parsed = JSON.parse(stored);
-    setSchema(parsed);
-
-    if (!resource) {
-      setSelectedResource(null);
-      return;
-    }
-
-    const res = parsed.resources.find((r: any) => r.name === resource);
-    if (res) {
-      setSelectedResource(res);
-
-      if (id === "new") {
-        setMode("create");
-      } else if (id) {
-        setMode("detail");
-      } else {
-        setMode("list");
-      }
-    }
-  }, [resource, id, navigate]);
-
-  if (!schema) {
-    return <LoadingSpinner message="Loading schema..." />;
+  if (resources.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading portal...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex">
-      {/* Sidebar */}
-      <Sidebar
-        resources={schema.resources}
-        open={sidebarOpen}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
-      />
+    <div className="min-h-screen bg-gray-50">
+      <Sidebar resources={resources} open={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
 
-      {/* Main Content */}
-      <div className={`flex-1 transition-all ${sidebarOpen ? "ml-64" : "ml-0"}`}>
-        {/* Header */}
-        <header className="bg-slate-900 border-b border-slate-800 px-6 py-4 sticky top-0 z-30">
-          <div className="flex items-center gap-4">
-            {!sidebarOpen && (
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="p-2 hover:bg-slate-800 rounded transition"
-              >
-                <Menu className="w-6 h-6 text-gray-400" />
-              </button>
-            )}
-            <div className="flex items-center gap-3">
-              <Skull className="w-8 h-8 text-green-500 ghost-float" />
-              <div>
-                <h1 className="text-xl font-bold text-white">
-                  {selectedResource ? selectedResource.displayName : "Dashboard"}
-                </h1>
-                {selectedResource && (
-                  <p className="text-sm text-gray-400">
-                    {mode === "create"
-                      ? "Create New"
-                      : mode === "edit"
-                      ? "Edit Record"
-                      : mode === "detail"
-                      ? `Details #${id}`
-                      : "All Records"}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Content Area */}
-        <main className="p-6">
-          {!selectedResource ? (
-            <Dashboard resources={schema.resources} />
-          ) : mode === "list" ? (
-            <ResourceList resource={selectedResource} />
-          ) : mode === "detail" ? (
-            <ResourceDetail
-              resource={selectedResource}
-              id={id as string}
-              onEdit={() => setMode("edit")}
-            />
-          ) : mode === "create" ? (
-            <ResourceForm
-              resource={selectedResource}
-              mode="create"
-              onSuccess={() => navigate(`/portal/${resource}`)}
-              onCancel={() => navigate(`/portal/${resource}`)}
-            />
-          ) : (
-            <ResourceForm
-              resource={selectedResource}
-              mode="edit"
-              id={id as string}
-              onSuccess={() => navigate(`/portal/${resource}/${id}`)}
-              onCancel={() => navigate(`/portal/${resource}/${id}`)}
-            />
-          )}
-        </main>
-      </div>
+      <main className={`transition-all duration-300 ${sidebarOpen ? "ml-64" : "ml-16"}`}>
+        <div className="p-8">
+          <Routes>
+            <Route index element={<Dashboard resources={resources} />} />
+            <Route path=":resourceName" element={<ResourceListWrapper resources={resources} />} />
+            <Route path=":resourceName/activity" element={<ResourceActivityWrapper resources={resources} />} />
+            <Route path=":resourceName/settings" element={<ResourceSettingsWrapper resources={resources} />} />
+            <Route path=":resourceName/new" element={<ResourceFormWrapper resources={resources} mode="create" />} />
+            <Route path=":resourceName/:id" element={<ResourceDetailWrapper resources={resources} />} />
+            <Route path=":resourceName/:id/edit" element={<ResourceFormWrapper resources={resources} mode="edit" />} />
+          </Routes>
+        </div>
+      </main>
     </div>
-  );
+  )
+}
+
+// Wrapper components to extract params
+function ResourceListWrapper({ resources }: { resources: ResourceSchema[] }) {
+  const { resourceName } = useParams()
+  const resource = resources.find((r) => r.name === resourceName)
+  if (!resource) return <div className="text-gray-600">Resource not found</div>
+  return <ResourceList resource={resource} />
+}
+
+function ResourceActivityWrapper({ resources }: { resources: ResourceSchema[] }) {
+  const { resourceName } = useParams()
+  const resource = resources.find((r) => r.name === resourceName)
+  if (!resource) return <div className="text-gray-600">Resource not found</div>
+  return <ResourceActivity resource={resource} />
+}
+
+function ResourceSettingsWrapper({ resources }: { resources: ResourceSchema[] }) {
+  const { resourceName } = useParams()
+  const resource = resources.find((r) => r.name === resourceName)
+  if (!resource) return <div className="text-gray-600">Resource not found</div>
+  return <ResourceSettings resource={resource} />
+}
+
+function ResourceDetailWrapper({ resources }: { resources: ResourceSchema[] }) {
+  const { resourceName, id } = useParams()
+  const navigate = useNavigate()
+  const resource = resources.find((r) => r.name === resourceName)
+  if (!resource || !id) return <div className="text-gray-600">Resource not found</div>
+  return <ResourceDetail resource={resource} id={id} onEdit={() => navigate(`/portal/${resourceName}/${id}/edit`)} />
+}
+
+function ResourceFormWrapper({
+  resources,
+  mode,
+}: {
+  resources: ResourceSchema[]
+  mode: "create" | "edit"
+}) {
+  const { resourceName, id } = useParams()
+  const navigate = useNavigate()
+  const resource = resources.find((r) => r.name === resourceName)
+  if (!resource) return <div className="text-gray-600">Resource not found</div>
+  return (
+    <ResourceForm
+      resource={resource}
+      mode={mode}
+      id={id}
+      onSuccess={() => navigate(`/portal/${resourceName}`)}
+      onCancel={() => navigate(mode === "edit" ? `/portal/${resourceName}/${id}` : `/portal/${resourceName}`)}
+    />
+  )
 }
