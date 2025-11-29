@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Search, Eye, Plus, ChevronLeft, ChevronRight, Filter } from "lucide-react"
+import { Search, Eye, Plus, ChevronLeft, ChevronRight, Filter, Sparkles } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -115,15 +115,22 @@ export default function ResourceList({ resource }: ResourceListProps) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-6 animate-emerge">
+      {/* Header - Enhanced */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{resource.displayName}</h1>
-          <p className="text-gray-500 mt-1">Manage and view all {resource.displayName.toLowerCase()}</p>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-br from-indigo-100 to-purple-50 rounded-xl">
+              <Sparkles className="w-5 h-5 text-indigo-600" />
+            </div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+              {resource.displayName}
+            </h1>
+          </div>
+          <p className="text-gray-500 mt-2 ml-12">Manage and view all {resource.displayName.toLowerCase()}</p>
         </div>
         <Button
-          className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl transition-all"
           onClick={() => navigate(`/portal/${resource.name}/new`)}
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -131,23 +138,23 @@ export default function ResourceList({ resource }: ResourceListProps) {
         </Button>
       </div>
 
-      {/* Search & Filter Bar */}
-      <div className="flex gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+      {/* Search & Filter Bar - Enhanced */}
+      <div className="flex gap-4 bg-white p-5 rounded-2xl border-0 shadow-lg shadow-gray-200/50">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" />
           <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={`Search ${resource.displayName.toLowerCase()}...`}
-            className="pl-10 bg-gray-50 border-gray-200 focus:bg-white"
+            className="pl-12 h-12 bg-gray-50 border-0 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all"
           />
         </div>
         <Select value={itemsPerPage.toString()} onValueChange={(v) => setItemsPerPage(Number(v))}>
-          <SelectTrigger className="w-36 bg-gray-50 border-gray-200">
+          <SelectTrigger className="w-40 h-12 bg-gray-50 border-0 rounded-xl">
             <Filter className="w-4 h-4 mr-2 text-gray-400" />
             <SelectValue placeholder="Per page" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="rounded-xl">
             <SelectItem value="10">10 per page</SelectItem>
             <SelectItem value="20">20 per page</SelectItem>
             <SelectItem value="50">50 per page</SelectItem>
@@ -156,24 +163,24 @@ export default function ResourceList({ resource }: ResourceListProps) {
         </Select>
       </div>
 
-      {/* Table */}
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+      {/* Table - Enhanced */}
+      <div className="bg-white border-0 rounded-2xl shadow-lg shadow-gray-200/50 overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="bg-gray-50 border-gray-200">
-              <TableHead className="text-gray-600 font-semibold w-20">ID</TableHead>
+            <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-gray-100">
+              <TableHead className="text-gray-600 font-semibold w-20 py-4">ID</TableHead>
               {visibleFields.map((field: any) => (
-                <TableHead key={field.name} className="text-gray-600 font-semibold">
+                <TableHead key={field.name} className="text-gray-600 font-semibold py-4">
                   {field.displayName}
                 </TableHead>
               ))}
-              <TableHead className="text-gray-600 font-semibold text-right w-24">Actions</TableHead>
+              <TableHead className="text-gray-600 font-semibold text-right w-24 py-4">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={visibleFields.length + 2} className="text-center py-8">
+                <TableCell colSpan={visibleFields.length + 2} className="text-center py-12">
                   <EmptyState
                     message={
                       searchTerm
@@ -187,16 +194,23 @@ export default function ResourceList({ resource }: ResourceListProps) {
               paginatedData.map((item, index) => (
                 <TableRow
                   key={item[resource.primaryKey]}
-                  className="border-gray-100 cursor-pointer hover:bg-indigo-50/50 transition"
+                  className="border-gray-100 cursor-pointer hover:bg-gradient-to-r hover:from-indigo-50/50 hover:to-purple-50/30 transition-all duration-200"
                   onClick={() => handleRowClick(item)}
+                  style={{ animationDelay: `${index * 0.03}s` }}
                 >
-                  <TableCell className="text-indigo-600 font-mono font-medium">#{item[resource.primaryKey]}</TableCell>
+                  <TableCell className="font-mono font-semibold py-4">
+                    <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                      #{item[resource.primaryKey]}
+                    </span>
+                  </TableCell>
                   {visibleFields.map((field: any) => (
-                    <TableCell key={field.name} className="text-gray-700">
+                    <TableCell key={field.name} className="text-gray-700 py-4">
                       {field.type === "boolean" ? (
                         <span
-                          className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                            item[field.name] ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"
+                          className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
+                            item[field.name]
+                              ? "bg-gradient-to-r from-emerald-100 to-emerald-50 text-emerald-700"
+                              : "bg-gray-100 text-gray-600"
                           }`}
                         >
                           {formatValue(item[field.name], field)}
@@ -206,7 +220,7 @@ export default function ResourceList({ resource }: ResourceListProps) {
                       )}
                     </TableCell>
                   ))}
-                  <TableCell className="text-right">
+                  <TableCell className="text-right py-4">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -214,7 +228,7 @@ export default function ResourceList({ resource }: ResourceListProps) {
                         e.stopPropagation()
                         handleRowClick(item)
                       }}
-                      className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-100"
+                      className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-100 rounded-xl"
                     >
                       <Eye className="w-4 h-4" />
                     </Button>
@@ -226,12 +240,13 @@ export default function ResourceList({ resource }: ResourceListProps) {
         </Table>
       </div>
 
-      {/* Pagination Footer */}
-      <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm">
+      {/* Pagination Footer - Enhanced */}
+      <div className="flex items-center justify-between bg-white border-0 rounded-2xl px-5 py-4 shadow-lg shadow-gray-200/50">
         <div className="text-sm text-gray-500">
-          Showing <span className="font-medium text-gray-900">{filteredData.length === 0 ? 0 : startIndex + 1}</span> -{" "}
-          <span className="font-medium text-gray-900">{Math.min(endIndex, filteredData.length)}</span> of{" "}
-          <span className="font-medium text-gray-900">{filteredData.length}</span> {resource.displayName.toLowerCase()}
+          Showing <span className="font-semibold text-gray-900">{filteredData.length === 0 ? 0 : startIndex + 1}</span>{" "}
+          - <span className="font-semibold text-gray-900">{Math.min(endIndex, filteredData.length)}</span> of{" "}
+          <span className="font-semibold text-gray-900">{filteredData.length}</span>{" "}
+          {resource.displayName.toLowerCase()}
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -239,7 +254,7 @@ export default function ResourceList({ resource }: ResourceListProps) {
             size="sm"
             disabled={currentSafePage === 1}
             onClick={() => setCurrentPage((p) => p - 1)}
-            className="border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30"
+            className="border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 rounded-xl"
           >
             <ChevronLeft className="w-4 h-4 mr-1" />
             Previous
@@ -264,8 +279,8 @@ export default function ResourceList({ resource }: ResourceListProps) {
                   onClick={() => setCurrentPage(pageNum)}
                   className={
                     currentSafePage === pageNum
-                      ? "bg-indigo-600 hover:bg-indigo-700 text-white"
-                      : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                      ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white border-0 rounded-xl"
+                      : "border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl"
                   }
                 >
                   {pageNum}
@@ -278,7 +293,7 @@ export default function ResourceList({ resource }: ResourceListProps) {
             size="sm"
             disabled={currentSafePage === totalPages}
             onClick={() => setCurrentPage((p) => p + 1)}
-            className="border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30"
+            className="border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 rounded-xl"
           >
             Next
             <ChevronRight className="w-4 h-4 ml-1" />

@@ -1,7 +1,7 @@
 export default function SpookyBackground() {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-      {/* Base gradient background */}
+      {/* Base gradient background - deeper purple/green haunted sky */}
       <div
         className="absolute inset-0"
         style={{
@@ -18,359 +18,694 @@ export default function SpookyBackground() {
         }}
       />
 
-      {/* Moon */}
-      <div className="absolute top-8 right-12 w-24 h-24">
+      {/* ==================== SKY ELEMENTS ==================== */}
+
+      {/* Enhanced Moon with craters and glow */}
+      <div className="absolute top-6 right-8 w-32 h-32">
         <div
-          className="w-full h-full rounded-full"
+          className="w-full h-full rounded-full relative"
           style={{
             background: "radial-gradient(circle at 30% 30%, #fef3c7 0%, #fcd34d 50%, #f59e0b 100%)",
-            boxShadow: "0 0 60px rgba(251, 191, 36, 0.4), 0 0 120px rgba(251, 191, 36, 0.2)",
+            boxShadow: "0 0 100px rgba(251, 191, 36, 0.6), 0 0 200px rgba(251, 191, 36, 0.3)",
           }}
-        />
-        {/* Moon craters */}
-        <div className="absolute top-4 left-6 w-4 h-4 rounded-full bg-amber-200/30" />
-        <div className="absolute top-10 right-6 w-3 h-3 rounded-full bg-amber-200/30" />
-        <div className="absolute bottom-6 left-8 w-5 h-5 rounded-full bg-amber-200/30" />
+        >
+          <div className="absolute top-6 left-8 w-5 h-5 rounded-full bg-amber-200/40" />
+          <div className="absolute top-14 right-7 w-4 h-4 rounded-full bg-amber-200/35" />
+          <div className="absolute bottom-10 left-12 w-7 h-7 rounded-full bg-amber-200/30" />
+          <div className="absolute top-10 left-16 w-3 h-3 rounded-full bg-amber-300/25" />
+        </div>
       </div>
 
-      {/* Stars */}
+      {/* Stars - more variety */}
       <div className="absolute inset-0">
-        {Array.from({ length: 50 }).map((_, i) => (
+        {Array.from({ length: 100 }).map((_, i) => (
           <div
             key={i}
             className="absolute rounded-full bg-white animate-twinkle"
             style={{
-              width: `${1 + Math.random() * 2}px`,
-              height: `${1 + Math.random() * 2}px`,
+              width: `${1 + Math.random() * 2.5}px`,
+              height: `${1 + Math.random() * 2.5}px`,
               left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 40}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${2 + Math.random() * 2}s`,
+              top: `${Math.random() * 50}%`,
+              animationDelay: `${Math.random() * 4}s`,
+              animationDuration: `${2 + Math.random() * 3}s`,
             }}
           />
         ))}
       </div>
 
-      {/* Flying bats */}
-      {Array.from({ length: 5 }).map((_, i) => (
+      {/* ==================== FLOATING DEAD TECH ==================== */}
+
+      {/* Old Desktop Computer - floating */}
+      <div className="absolute left-[8%] top-[25%] animate-float-up opacity-25" style={{ animationDuration: "12s" }}>
+        <svg viewBox="0 0 100 120" className="w-20 h-24">
+          {/* PC Tower */}
+          <rect x="5" y="10" width="55" height="90" rx="3" fill="#2a2a2a" stroke="#444" strokeWidth="2" />
+          <rect x="12" y="18" width="40" height="10" fill="#111" />
+          <circle cx="20" cy="38" r="4" fill="#22c55e" opacity="0.5" className="animate-pulse" />
+          <circle
+            cx="32"
+            cy="38"
+            r="4"
+            fill="#dc2626"
+            opacity="0.5"
+            className="animate-pulse"
+            style={{ animationDelay: "0.3s" }}
+          />
+          <rect x="12" y="50" width="40" height="4" fill="#333" />
+          <rect x="12" y="58" width="40" height="4" fill="#333" />
+          <rect x="12" y="66" width="40" height="4" fill="#333" />
+          <rect x="12" y="74" width="40" height="4" fill="#333" />
+          {/* Cobwebs */}
+          <path d="M55 10 Q70 20 58 35" stroke="#6b7280" strokeWidth="0.5" fill="none" opacity="0.5" />
+        </svg>
+      </div>
+
+      {/* Old CRT Monitor - floating */}
+      <div
+        className="absolute right-[12%] top-[18%] animate-float-up opacity-20"
+        style={{ animationDuration: "10s", animationDelay: "2s" }}
+      >
+        <svg viewBox="0 0 130 110" className="w-24 h-20">
+          <rect x="10" y="10" width="110" height="80" rx="8" fill="#3a3a3a" stroke="#555" strokeWidth="3" />
+          <rect x="22" y="18" width="86" height="60" fill="#0a0a0a" />
+          {/* Blue screen of death */}
+          <rect x="22" y="18" width="86" height="60" fill="#0000aa" opacity="0.3" />
+          <text x="65" y="45" textAnchor="middle" fill="#ffffff" fontSize="6" opacity="0.6">
+            A fatal exception
+          </text>
+          <text x="65" y="55" textAnchor="middle" fill="#ffffff" fontSize="6" opacity="0.6">
+            has occurred at
+          </text>
+          <text x="65" y="65" textAnchor="middle" fill="#22c55e" fontSize="5" opacity="0.8">
+            0x00000000
+          </text>
+          <rect x="50" y="90" width="30" height="15" fill="#333" />
+        </svg>
+      </div>
+
+      {/* Floppy Disk - floating */}
+      <div
+        className="absolute left-[20%] top-[45%] animate-float-up opacity-15"
+        style={{ animationDuration: "14s", animationDelay: "4s" }}
+      >
+        <svg viewBox="0 0 70 70" className="w-14 h-14">
+          <rect x="5" y="5" width="60" height="60" rx="3" fill="#1a1a1a" stroke="#333" strokeWidth="2" />
+          <rect x="15" y="5" width="28" height="16" fill="#555" />
+          <rect x="12" y="42" width="46" height="20" fill="#e5e5e5" />
+          <text x="35" y="54" textAnchor="middle" fill="#333" fontSize="5">
+            BACKUP_1999
+          </text>
+          <text x="35" y="62" textAnchor="middle" fill="#666" fontSize="4">
+            1.44 MB
+          </text>
+        </svg>
+      </div>
+
+      {/* Old Keyboard - floating */}
+      <div
+        className="absolute right-[25%] top-[55%] animate-float-up opacity-10"
+        style={{ animationDuration: "11s", animationDelay: "1s" }}
+      >
+        <svg viewBox="0 0 120 40" className="w-24 h-8">
+          <rect x="5" y="5" width="110" height="30" rx="3" fill="#2a2a2a" stroke="#444" strokeWidth="2" />
+          {/* Key rows */}
+          {Array.from({ length: 12 }).map((_, i) => (
+            <rect key={i} x={10 + i * 9} y="10" width="7" height="5" rx="1" fill="#444" />
+          ))}
+          {Array.from({ length: 11 }).map((_, i) => (
+            <rect key={i} x={14 + i * 9} y="17" width="7" height="5" rx="1" fill="#444" />
+          ))}
+          <rect x="35" y="24" width="50" height="5" rx="1" fill="#444" />
+        </svg>
+      </div>
+
+      {/* ==================== DRACULA FIGURES ==================== */}
+
+      {/* Dracula Figure - Left - larger and more detailed */}
+      <div className="absolute left-[2%] top-[8%] animate-dracula-float">
+        <svg viewBox="0 0 140 220" className="w-28 h-44 opacity-25">
+          {/* Cape */}
+          <path
+            d="M70 45 Q15 70 10 200 L45 185 L70 200 L95 185 L130 200 Q125 70 70 45"
+            fill="#1a0a2e"
+            className="animate-cape-flutter"
+            style={{ transformOrigin: "70px 45px" }}
+          />
+          <path d="M70 50 Q25 75 22 180 L70 165 L118 180 Q115 75 70 50" fill="#7f1d1d" opacity="0.5" />
+          {/* Inner red lining */}
+          <path d="M70 55 Q35 78 35 170 L70 158 L105 170 Q105 78 70 55" fill="#991b1b" opacity="0.3" />
+          {/* Head */}
+          <ellipse cx="70" cy="38" rx="18" ry="22" fill="#1f1f2e" />
+          <ellipse cx="70" cy="42" rx="14" ry="16" fill="#374151" />
+          {/* Eyes - glowing red */}
+          <ellipse cx="62" cy="38" rx="4" ry="5" fill="#dc2626" className="animate-pulse" />
+          <ellipse cx="78" cy="38" rx="4" ry="5" fill="#dc2626" className="animate-pulse" />
+          <ellipse cx="62" cy="38" rx="2" ry="2.5" fill="#fff" opacity="0.8" />
+          <ellipse cx="78" cy="38" rx="2" ry="2.5" fill="#fff" opacity="0.8" />
+          {/* Fangs */}
+          <path d="M64 54 L66 62 L68 54 M72 54 L74 62 L76 54" fill="#f0f0f0" />
+          {/* Hair/Widow's peak */}
+          <path d="M52 28 Q70 18 88 28 Q75 22 70 30 Q65 22 52 28" fill="#1a1a2e" />
+        </svg>
+      </div>
+
+      {/* Dracula Figure - Right smaller */}
+      <div className="absolute right-[4%] top-[15%] animate-dracula-float" style={{ animationDelay: "5s" }}>
+        <svg viewBox="0 0 120 200" className="w-18 h-30 opacity-18">
+          <path
+            d="M60 40 Q20 60 15 180 L40 170 L60 180 L80 170 L105 180 Q100 60 60 40"
+            fill="#1a0a2e"
+            className="animate-cape-flutter"
+          />
+          <path d="M60 45 Q30 65 28 160 L60 150 L92 160 Q90 65 60 45" fill="#581c87" opacity="0.4" />
+          <ellipse cx="60" cy="38" rx="12" ry="14" fill="#2d2d3a" />
+          <ellipse cx="53" cy="35" rx="3" ry="3.5" fill="#a855f7" className="animate-pulse" />
+          <ellipse cx="67" cy="35" rx="3" ry="3.5" fill="#a855f7" className="animate-pulse" />
+        </svg>
+      </div>
+
+      {/* ==================== BATS ==================== */}
+      {Array.from({ length: 10 }).map((_, i) => (
         <div
           key={i}
           className="absolute animate-bat-fly"
           style={{
-            left: `${10 + i * 18}%`,
-            top: `${8 + (i % 3) * 8}%`,
-            animationDelay: `${i * 1.2}s`,
-            animationDuration: `${4 + i * 0.5}s`,
+            left: `${3 + i * 10}%`,
+            top: `${4 + (i % 5) * 7}%`,
+            animationDelay: `${i * 0.6}s`,
+            animationDuration: `${3 + i * 0.3}s`,
+            transform: `scale(${0.4 + (i % 4) * 0.2})`,
           }}
         >
-          <svg viewBox="0 0 60 30" className="w-12 h-6 opacity-70">
+          <svg viewBox="0 0 60 30" className="w-10 h-5 opacity-60">
             <path
               d="M30 15 Q20 5 10 10 Q15 15 10 20 Q20 18 30 15 Q40 18 50 20 Q45 15 50 10 Q40 5 30 15"
               fill="#1a1a2e"
             />
-            <circle cx="28" cy="13" r="1" fill="#22c55e" />
-            <circle cx="32" cy="13" r="1" fill="#22c55e" />
+            <circle cx="28" cy="13" r="1" fill="#22c55e" className="animate-pulse" />
+            <circle cx="32" cy="13" r="1" fill="#22c55e" className="animate-pulse" />
           </svg>
         </div>
       ))}
 
-      {/* Spider webs - Top corners */}
-      <div className="absolute top-0 left-0 w-40 h-40 opacity-40">
-        <svg viewBox="0 0 150 150" className="w-full h-full">
+      {/* ==================== SPIDER WEB - TOP LEFT ==================== */}
+      <div className="absolute top-0 left-0 w-52 h-52 opacity-40">
+        <svg viewBox="0 0 220 220" className="w-full h-full">
           <path
-            d="M0 0 L150 0 M0 0 L0 150 M0 0 L150 150 M0 0 L100 150 M0 0 L150 100 M0 0 L50 150 M0 0 L150 50"
+            d="M0 0 L220 0 M0 0 L0 220 M0 0 L220 220 M0 0 L140 220 M0 0 L220 140 M0 0 L70 220 M0 0 L220 70"
             stroke="#6b7280"
             strokeWidth="0.5"
             fill="none"
           />
-          <path d="M0 30 Q40 35 75 30 Q110 35 150 30" stroke="#6b7280" strokeWidth="0.5" fill="none" />
-          <path d="M0 60 Q35 65 70 60 Q105 65 140 60" stroke="#6b7280" strokeWidth="0.5" fill="none" />
-          <path d="M0 90 Q30 95 60 90 Q90 95 120 90" stroke="#6b7280" strokeWidth="0.5" fill="none" />
+          <path d="M0 45 Q60 50 110 45 Q160 50 220 45" stroke="#6b7280" strokeWidth="0.5" fill="none" />
+          <path d="M0 90 Q55 95 105 90 Q155 95 200 90" stroke="#6b7280" strokeWidth="0.5" fill="none" />
+          <path d="M0 135 Q50 140 95 135 Q140 140 180 135" stroke="#6b7280" strokeWidth="0.5" fill="none" />
           {/* Spider */}
-          <circle cx="45" cy="45" r="5" fill="#1f2937" />
-          <circle cx="45" cy="38" r="3" fill="#1f2937" />
+          <circle cx="60" cy="60" r="7" fill="#1f2937" />
+          <circle cx="60" cy="50" r="5" fill="#1f2937" />
           <path
-            d="M40 45 L30 35 M40 43 L28 43 M40 47 L30 55 M50 45 L60 35 M50 43 L62 43 M50 47 L60 55"
+            d="M52 60 L38 48 M52 58 L35 58 M52 62 L38 74 M68 60 L82 48 M68 58 L85 58 M68 62 L82 74"
             stroke="#1f2937"
-            strokeWidth="1.5"
+            strokeWidth="1.8"
           />
-          <circle cx="43" cy="36" r="1" fill="#22c55e" />
-          <circle cx="47" cy="36" r="1" fill="#22c55e" />
+          <circle cx="57" cy="48" r="1.5" fill="#22c55e" className="animate-pulse" />
+          <circle cx="63" cy="48" r="1.5" fill="#22c55e" className="animate-pulse" />
         </svg>
       </div>
 
-      <div className="absolute top-0 right-0 w-40 h-40 opacity-30 transform scale-x-[-1]">
-        <svg viewBox="0 0 150 150" className="w-full h-full">
-          <path
-            d="M0 0 L150 0 M0 0 L0 150 M0 0 L150 150 M0 0 L100 150 M0 0 L150 100"
-            stroke="#6b7280"
-            strokeWidth="0.5"
-            fill="none"
+      {/* ==================== OWLS ==================== */}
+
+      {/* Owl on branch - Left */}
+      <div className="absolute left-[1%] top-[32%]">
+        <svg viewBox="0 0 80 100" className="w-16 h-20 animate-owl-turn" style={{ transformOrigin: "40px 50px" }}>
+          {/* Branch */}
+          <path d="M0 75 Q25 70 55 73 Q70 71 80 75" stroke="#3d2817" strokeWidth="6" fill="none" />
+          <path d="M55 73 Q62 65 60 55" stroke="#3d2817" strokeWidth="3" fill="none" />
+          {/* Body */}
+          <ellipse cx="40" cy="55" rx="18" ry="22" fill="#5c4a3a" />
+          <ellipse cx="40" cy="60" rx="12" ry="15" fill="#7a6a5a" />
+          {/* Chest pattern */}
+          <ellipse cx="40" cy="62" rx="8" ry="10" fill="#8a7a6a" />
+          {/* Head */}
+          <ellipse cx="40" cy="40" rx="15" ry="13" fill="#6b5b4b" />
+          {/* Ear tufts */}
+          <path d="M26 28 L28 18 L34 30" fill="#5c4a3a" />
+          <path d="M54 28 L52 18 L46 30" fill="#5c4a3a" />
+          {/* Eyes */}
+          <circle cx="32" cy="38" r="7" fill="#2a2a2a" />
+          <circle cx="48" cy="38" r="7" fill="#2a2a2a" />
+          <circle
+            cx="32"
+            cy="38"
+            r="4"
+            fill="#fbbf24"
+            className="animate-owl-blink"
+            style={{ transformOrigin: "32px 38px" }}
           />
-          <path d="M0 25 Q35 30 70 25 Q105 30 140 25" stroke="#6b7280" strokeWidth="0.5" fill="none" />
-          <path d="M0 50 Q30 55 60 50 Q90 55 120 50" stroke="#6b7280" strokeWidth="0.5" fill="none" />
+          <circle
+            cx="48"
+            cy="38"
+            r="4"
+            fill="#fbbf24"
+            className="animate-owl-blink"
+            style={{ transformOrigin: "48px 38px" }}
+          />
+          <circle cx="32" cy="38" r="2" fill="#000" />
+          <circle cx="48" cy="38" r="2" fill="#000" />
+          <circle cx="30" cy="36" r="1" fill="#fff" opacity="0.9" />
+          <circle cx="46" cy="36" r="1" fill="#fff" opacity="0.9" />
+          {/* Beak */}
+          <path d="M38 44 L40 52 L42 44" fill="#d97706" />
+          {/* Feet */}
+          <path d="M32 75 L30 82 M35 75 L35 82 M38 75 L40 82" stroke="#d97706" strokeWidth="2" />
+          <path d="M42 75 L40 82 M45 75 L45 82 M48 75 L50 82" stroke="#d97706" strokeWidth="2" />
         </svg>
       </div>
 
-      {/* Graveyard scene - Bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-64">
-        <svg viewBox="0 0 1400 250" className="w-full h-full" preserveAspectRatio="none">
-          {/* Fog layer */}
+      {/* Second Owl - Right side, smaller */}
+      <div className="absolute right-[5%] top-[38%]">
+        <svg
+          viewBox="0 0 65 85"
+          className="w-12 h-16 animate-owl-turn"
+          style={{ transformOrigin: "32px 42px", animationDelay: "4s" }}
+        >
+          <path d="M0 62 Q20 58 45 60 Q58 58 65 62" stroke="#3d2817" strokeWidth="5" fill="none" />
+          <ellipse cx="32" cy="48" rx="15" ry="18" fill="#4a3a2a" />
+          <ellipse cx="32" cy="35" rx="12" ry="10" fill="#5a4a3a" />
+          <circle cx="25" cy="33" r="5" fill="#1a1a1a" />
+          <circle cx="39" cy="33" r="5" fill="#1a1a1a" />
+          <circle cx="25" cy="33" r="3" fill="#f59e0b" className="animate-owl-blink" style={{ animationDelay: "2s" }} />
+          <circle cx="39" cy="33" r="3" fill="#f59e0b" className="animate-owl-blink" style={{ animationDelay: "2s" }} />
+          <circle cx="25" cy="33" r="1.5" fill="#000" />
+          <circle cx="39" cy="33" r="1.5" fill="#000" />
+          <path d="M30 39 L32 45 L34 39" fill="#ea580c" />
+        </svg>
+      </div>
+
+      {/* ==================== GRAVEYARD SCENE - BOTTOM ==================== */}
+      <div className="absolute bottom-0 left-0 right-0 h-80">
+        <svg viewBox="0 0 1920 320" className="w-full h-full" preserveAspectRatio="none">
           <defs>
-            <linearGradient id="fogGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="transparent" />
-              <stop offset="50%" stopColor="rgba(34,197,94,0.1)" />
-              <stop offset="100%" stopColor="rgba(34,197,94,0.2)" />
+            <linearGradient id="groundGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#0f0f0f" />
+              <stop offset="100%" stopColor="#050505" />
             </linearGradient>
           </defs>
 
-          {/* Ground with grass hints */}
+          {/* Ground with grass texture hints */}
           <path
-            d="M0 250 L0 180 Q70 175 140 180 Q210 185 280 178 Q350 175 420 182 Q490 178 560 180 Q630 185 700 177 Q770 175 840 182 Q910 178 980 180 Q1050 185 1120 178 Q1190 175 1260 182 Q1330 178 1400 180 L1400 250 Z"
-            fill="#0a0a0a"
+            d="M0 320 L0 220 Q120 215 240 220 Q360 225 480 218 Q600 215 720 222 Q840 218 960 220 Q1080 225 1200 218 Q1320 215 1440 222 Q1560 218 1680 220 Q1800 225 1920 220 L1920 320 Z"
+            fill="url(#groundGrad)"
           />
 
-          {/* Tombstones */}
-          <g className="animate-sway" style={{ transformOrigin: "115px 180px", animationDuration: "6s" }}>
+          {/* ==================== DEAD TREES ==================== */}
+          <g className="animate-tree-sway" style={{ transformOrigin: "60px 220px" }}>
             <path
-              d="M80 180 L80 100 Q80 70 115 70 Q150 70 150 100 L150 180"
+              d="M40 220 L52 40 L28 80 L50 65 L10 20 L52 55 L35 -10 L60 42 L82 -15 L68 50 L115 15 L58 70 L100 78 L52 90 L78 220"
+              fill="#0d0d0d"
+            />
+            {/* Leaves occasionally */}
+            <ellipse
+              cx="25"
+              cy="85"
+              rx="4"
+              ry="6"
+              fill="#1a1a1a"
+              className="animate-float-up"
+              style={{ animationDuration: "8s" }}
+            />
+          </g>
+
+          <g className="animate-tree-sway" style={{ transformOrigin: "1860px 220px", animationDelay: "3s" }}>
+            <path
+              d="M1840 220 L1855 50 L1830 85 L1853 75 L1810 35 L1855 65 L1835 5 L1865 55 L1890 0 L1875 60 L1920 25 L1860 80 L1905 85 L1855 95 L1880 220"
+              fill="#0d0d0d"
+            />
+          </g>
+
+          {/* ==================== HAUNTED HOUSE ==================== */}
+          <g>
+            {/* Main building */}
+            <path d="M140 220 L140 150 L190 100 L240 150 L240 220" fill="#0d0d0d" />
+            {/* Windows */}
+            <rect x="155" y="165" width="25" height="35" fill="#0a0a0a" />
+            <rect x="200" y="165" width="25" height="35" fill="#0a0a0a" />
+            {/* Window glow */}
+            <rect
+              x="160"
+              y="170"
+              width="15"
+              height="22"
+              fill="#f97316"
+              opacity="0.2"
+              className="animate-window-flicker"
+            />
+            <rect
+              x="205"
+              y="170"
+              width="15"
+              height="22"
+              fill="#f97316"
+              opacity="0.15"
+              className="animate-window-flicker"
+              style={{ animationDelay: "1.5s" }}
+            />
+            {/* Roof */}
+            <path d="M130 155 L190 90 L250 155" fill="#0a0a0a" />
+            {/* Chimney */}
+            <rect x="215" y="105" width="15" height="40" fill="#0d0d0d" />
+            {/* Door */}
+            <rect x="175" y="190" width="25" height="30" fill="#080808" />
+            <circle cx="195" cy="205" r="2" fill="#888" />
+          </g>
+
+          {/* ==================== TOMBSTONES ==================== */}
+
+          {/* Tombstone 1 - RIP API v1 */}
+          <g className="animate-sway" style={{ transformOrigin: "340px 220px", animationDuration: "6s" }}>
+            <path
+              d="M305 220 L305 120 Q305 85 340 85 Q375 85 375 120 L375 220"
               fill="#1a1a2e"
               stroke="#2d2d4a"
               strokeWidth="2"
             />
             <text
-              x="115"
-              y="120"
+              x="340"
+              y="115"
               textAnchor="middle"
               fill="#22c55e"
-              fontSize="14"
+              fontSize="16"
               fontWeight="bold"
               className="animate-pulse"
             >
               RIP
             </text>
-            <text x="115" y="140" textAnchor="middle" fill="#4a5568" fontSize="10">
+            <text x="340" y="140" textAnchor="middle" fill="#4a5568" fontSize="12">
               API v1
             </text>
-            <text x="115" y="155" textAnchor="middle" fill="#4a5568" fontSize="8">
+            <text x="340" y="165" textAnchor="middle" fill="#4a5568" fontSize="10">
               2010-2024
             </text>
           </g>
 
+          {/* Tombstone 2 - SOAP 2.0 (cross shape) */}
           <g>
-            <path d="M250 180 L250 120 L280 85 L310 120 L310 180" fill="#1a1a2e" stroke="#2d2d4a" strokeWidth="2" />
-            <path d="M280 100 L280 150 M265 120 L295 120" stroke="#a855f7" strokeWidth="3" className="animate-pulse" />
+            <path d="M460 220 L460 155 L490 115 L520 155 L520 220" fill="#1a1a2e" stroke="#2d2d4a" strokeWidth="2" />
+            <path d="M490 130 L490 200 M472 155 L508 155" stroke="#a855f7" strokeWidth="4" className="animate-pulse" />
+            <text x="490" y="215" textAnchor="middle" fill="#4a5568" fontSize="9">
+              SOAP 2.0
+            </text>
           </g>
 
-          <g className="animate-sway" style={{ transformOrigin: "440px 180px", animationDuration: "5s" }}>
+          {/* Tombstone 3 - XML (larger) */}
+          <g className="animate-sway" style={{ transformOrigin: "620px 220px", animationDuration: "5s" }}>
             <path
-              d="M400 180 L400 90 Q400 60 440 60 Q480 60 480 90 L480 180"
+              d="M580 220 L580 95 Q580 60 620 60 Q660 60 660 95 L660 220"
               fill="#1a1a2e"
               stroke="#2d2d4a"
               strokeWidth="2"
             />
-            <text x="440" y="115" textAnchor="middle" fill="#f97316" fontSize="12" className="animate-pulse">
-              REST
+            <text x="620" y="100" textAnchor="middle" fill="#f97316" fontSize="14" className="animate-pulse">
+              &lt;XML/&gt;
             </text>
-            <text x="440" y="135" textAnchor="middle" fill="#4a5568" fontSize="10">
-              IN
-            </text>
-            <text x="440" y="155" textAnchor="middle" fill="#4a5568" fontSize="10">
-              PEACE
-            </text>
-          </g>
-
-          {/* Casket with glow */}
-          <g>
-            <path
-              d="M560 180 L580 160 L680 160 L700 180 L700 210 L690 215 L590 215 L580 210 Z"
-              fill="#1a1a2e"
-              stroke="#2d2d4a"
-              strokeWidth="2"
-            />
-            <path d="M600 160 L600 200 M660 160 L660 200" stroke="#2d2d4a" strokeWidth="1" />
-            <path d="M630 165 L630 195 M615 178 L645 178" stroke="#22c55e" strokeWidth="3" className="animate-pulse" />
-            {/* Casket glow */}
-            <ellipse cx="630" cy="180" rx="40" ry="20" fill="rgba(34,197,94,0.15)" className="animate-pulse" />
-          </g>
-
-          {/* More tombstones on right */}
-          <g className="animate-sway" style={{ transformOrigin: "850px 180px", animationDuration: "7s" }}>
-            <path
-              d="M810 180 L810 110 Q810 85 850 85 Q890 85 890 110 L890 180"
-              fill="#1a1a2e"
-              stroke="#2d2d4a"
-              strokeWidth="2"
-            />
-            <text x="850" y="130" textAnchor="middle" fill="#a855f7" fontSize="12" className="animate-pulse">
-              SOAP
-            </text>
-            <text x="850" y="150" textAnchor="middle" fill="#4a5568" fontSize="10">
-              v2.0
-            </text>
-          </g>
-
-          <g>
-            <path d="M980 180 L980 130 L1010 100 L1040 130 L1040 180" fill="#1a1a2e" stroke="#2d2d4a" strokeWidth="2" />
-          </g>
-
-          <g className="animate-sway" style={{ transformOrigin: "1150px 180px", animationDuration: "5.5s" }}>
-            <path
-              d="M1110 180 L1110 95 Q1110 65 1150 65 Q1190 65 1190 95 L1190 180"
-              fill="#1a1a2e"
-              stroke="#2d2d4a"
-              strokeWidth="2"
-            />
-            <text x="1150" y="110" textAnchor="middle" fill="#22c55e" fontSize="11" className="animate-pulse">
-              XML
-            </text>
-            <text x="1150" y="130" textAnchor="middle" fill="#4a5568" fontSize="9">
+            <text x="620" y="125" textAnchor="middle" fill="#4a5568" fontSize="11">
               Legacy
             </text>
+            <text x="620" y="150" textAnchor="middle" fill="#6b7280" fontSize="9">
+              1998-2015
+            </text>
           </g>
 
-          {/* Pumpkins */}
-          <g transform="translate(180, 160)">
-            <ellipse cx="0" cy="15" rx="22" ry="18" fill="#ea580c" />
-            <ellipse cx="-8" cy="15" rx="10" ry="16" fill="#dc2626" opacity="0.3" />
-            <ellipse cx="8" cy="15" rx="10" ry="16" fill="#f97316" opacity="0.3" />
-            <path d="M0 0 Q5 -10 0 -15" stroke="#166534" strokeWidth="3" fill="none" />
-            <ellipse cx="-8" cy="12" rx="4" ry="5" fill="#000" />
-            <ellipse cx="8" cy="12" rx="4" ry="5" fill="#000" />
-            <path d="M-6 22 Q0 28 6 22" stroke="#000" strokeWidth="2" fill="none" />
-            {/* Inner glow */}
-            <ellipse cx="-8" cy="12" rx="2" ry="2.5" fill="#fbbf24" className="animate-flicker" />
-            <ellipse cx="8" cy="12" rx="2" ry="2.5" fill="#fbbf24" className="animate-flicker" />
-          </g>
-
-          <g transform="translate(1280, 165)">
-            <ellipse cx="0" cy="12" rx="18" ry="14" fill="#c2410c" />
-            <path d="M0 0 Q3 -8 0 -12" stroke="#166534" strokeWidth="2" fill="none" />
-            <ellipse cx="-5" cy="10" rx="3" ry="4" fill="#000" />
-            <ellipse cx="5" cy="10" rx="3" ry="4" fill="#000" />
-            <path d="M-4 17 Q0 20 4 17" stroke="#000" strokeWidth="2" fill="none" />
-            <ellipse
-              cx="-5"
-              cy="10"
-              rx="1.5"
-              ry="2"
-              fill="#fbbf24"
-              className="animate-flicker"
-              style={{ animationDelay: "0.5s" }}
-            />
-            <ellipse
-              cx="5"
-              cy="10"
-              rx="1.5"
-              ry="2"
-              fill="#fbbf24"
-              className="animate-flicker"
-              style={{ animationDelay: "0.5s" }}
-            />
-          </g>
-
-          {/* Dead trees */}
-          <path
-            d="M30 180 L40 60 L20 90 L38 80 L15 50 L40 70 L25 20 L50 55 L65 15 L55 65 L80 40 L50 80 L75 85 L45 95 L60 180"
-            fill="#0d0d15"
-          />
-          <path
-            d="M1320 180 L1330 70 L1310 95 L1328 88 L1300 55 L1330 75 L1315 25 L1340 60 L1355 20 L1345 68 L1370 45 L1340 82 L1365 88 L1335 98 L1350 180"
-            fill="#0d0d15"
-          />
-
-          {/* Candles */}
-          <g transform="translate(750, 155)">
-            <rect x="-5" y="10" width="10" height="25" fill="#fef3c7" />
-            <ellipse cx="0" cy="10" rx="5" ry="2" fill="#fef3c7" />
-            <ellipse cx="0" cy="5" rx="4" ry="8" fill="#fbbf24" className="animate-flicker" />
-            <ellipse cx="0" cy="2" rx="2" ry="4" fill="#fef3c7" className="animate-flicker" />
-          </g>
-
-          <g transform="translate(770, 160)">
-            <rect x="-4" y="8" width="8" height="20" fill="#fef3c7" />
-            <ellipse cx="0" cy="8" rx="4" ry="1.5" fill="#fef3c7" />
-            <ellipse
-              cx="0"
-              cy="3"
-              rx="3"
-              ry="6"
-              fill="#f97316"
-              className="animate-flicker"
-              style={{ animationDelay: "0.3s" }}
-            />
-          </g>
-
-          {/* Cauldron */}
-          <g transform="translate(520, 175)">
-            <ellipse cx="0" cy="30" rx="30" ry="6" fill="#0a0a0a" />
+          {/* Tombstone 4 - COBOL */}
+          <g className="animate-sway" style={{ transformOrigin: "760px 220px", animationDuration: "7s" }}>
             <path
-              d="M-28 10 Q-35 20 -28 35 L28 35 Q35 20 28 10 Q15 0 0 0 Q-15 0 -28 10"
+              d="M720 220 L720 170 Q720 148 760 148 Q800 148 800 170 L800 220"
+              fill="#1a1a2e"
+              stroke="#2d2d4a"
+              strokeWidth="2"
+            />
+            <text x="760" y="188" textAnchor="middle" fill="#22c55e" fontSize="11" className="animate-pulse">
+              COBOL
+            </text>
+            <text x="760" y="208" textAnchor="middle" fill="#4a5568" fontSize="8">
+              Forever Zombie
+            </text>
+          </g>
+
+          {/* CASKET - MONOLITH */}
+          <g>
+            <path
+              d="M870 220 L895 185 L1035 185 L1060 220 L1060 255 L1048 260 L902 260 L890 255 Z"
+              fill="#1a1a2e"
+              stroke="#2d2d4a"
+              strokeWidth="2"
+            />
+            <text x="965" y="218" textAnchor="middle" fill="#22c55e" fontSize="13" className="animate-pulse">
+              MONOLITH
+            </text>
+            <ellipse cx="965" cy="215" rx="55" ry="28" fill="rgba(34,197,94,0.08)" className="animate-pulse" />
+          </g>
+
+          {/* Tombstone 5 - jQuery */}
+          <g className="animate-sway" style={{ transformOrigin: "1140px 220px", animationDuration: "5.5s" }}>
+            <path
+              d="M1100 220 L1100 105 Q1100 70 1140 70 Q1180 70 1180 105 L1180 220"
+              fill="#1a1a2e"
+              stroke="#2d2d4a"
+              strokeWidth="2"
+            />
+            <text x="1140" y="110" textAnchor="middle" fill="#22c55e" fontSize="12" className="animate-pulse">
+              jQuery
+            </text>
+            <text x="1140" y="135" textAnchor="middle" fill="#4a5568" fontSize="10">
+              $().RIP()
+            </text>
+            <text x="1140" y="160" textAnchor="middle" fill="#6b7280" fontSize="9">
+              2006-2020
+            </text>
+          </g>
+
+          {/* Tombstone 6 - Flash */}
+          <g className="animate-sway" style={{ transformOrigin: "1290px 220px", animationDuration: "6s" }}>
+            <path
+              d="M1250 220 L1250 85 Q1250 50 1290 50 Q1330 50 1330 85 L1330 220"
+              fill="#1a1a2e"
+              stroke="#2d2d4a"
+              strokeWidth="2"
+            />
+            <text x="1290" y="90" textAnchor="middle" fill="#f97316" fontSize="18" className="animate-pulse">
+              ⚡
+            </text>
+            <text x="1290" y="120" textAnchor="middle" fill="#f97316" fontSize="14">
+              Flash
+            </text>
+            <text x="1290" y="150" textAnchor="middle" fill="#6b7280" fontSize="9">
+              1996-2020
+            </text>
+          </g>
+
+          {/* Tombstone 7 - IE */}
+          <g>
+            <path
+              d="M1400 220 L1400 175 Q1400 155 1435 155 Q1470 155 1470 175 L1470 220"
+              fill="#1a1a2e"
+              stroke="#2d2d4a"
+              strokeWidth="2"
+            />
+            <text x="1435" y="193" textAnchor="middle" fill="#3b82f6" fontSize="12" className="animate-pulse">
+              IE
+            </text>
+            <text x="1435" y="212" textAnchor="middle" fill="#4a5568" fontSize="8">
+              1995-2022
+            </text>
+          </g>
+
+          {/* Tombstone 8 - FTP */}
+          <g>
+            <path
+              d="M1530 220 L1530 175 L1560 145 L1590 175 L1590 220"
+              fill="#1a1a2e"
+              stroke="#2d2d4a"
+              strokeWidth="2"
+            />
+            <text x="1560" y="200" textAnchor="middle" fill="#a855f7" fontSize="10" className="animate-pulse">
+              FTP
+            </text>
+          </g>
+
+          {/* Tombstone 9 - CGI-BIN */}
+          <g className="animate-sway" style={{ transformOrigin: "1700px 220px", animationDuration: "5s" }}>
+            <path
+              d="M1660 220 L1660 135 Q1660 105 1700 105 Q1740 105 1740 135 L1740 220"
+              fill="#1a1a2e"
+              stroke="#2d2d4a"
+              strokeWidth="2"
+            />
+            <text x="1700" y="145" textAnchor="middle" fill="#f97316" fontSize="10" className="animate-pulse">
+              CGI-BIN
+            </text>
+            <text x="1700" y="170" textAnchor="middle" fill="#4a5568" fontSize="9">
+              Scripts
+            </text>
+          </g>
+
+          {/* Tombstone 10 - Perl */}
+          <g>
+            <path
+              d="M1810 220 L1810 180 Q1810 162 1845 162 Q1880 162 1880 180 L1880 220"
+              fill="#1a1a2e"
+              stroke="#2d2d4a"
+              strokeWidth="2"
+            />
+            <text x="1845" y="200" textAnchor="middle" fill="#22c55e" fontSize="10" className="animate-pulse">
+              Perl
+            </text>
+          </g>
+
+          {/* ==================== PUMPKINS ==================== */}
+
+          {/* Pumpkin 1 - near first tombstone */}
+          <g transform="translate(290, 185)">
+            <ellipse cx="0" cy="18" rx="24" ry="20" fill="#ea580c" />
+            <ellipse cx="-10" cy="18" rx="12" ry="18" fill="#dc2626" opacity="0.25" />
+            <ellipse cx="10" cy="18" rx="12" ry="18" fill="#f97316" opacity="0.3" />
+            <path d="M0 0 Q6 -12 0 -18" stroke="#166534" strokeWidth="4" fill="none" />
+            <ellipse cx="-9" cy="14" rx="5" ry="6" fill="#000" />
+            <ellipse cx="9" cy="14" rx="5" ry="6" fill="#000" />
+            <path d="M-7 26 Q0 34 7 26" stroke="#000" strokeWidth="2.5" fill="none" />
+            {/* Inner glow */}
+            <ellipse cx="-9" cy="14" rx="2.5" ry="3" fill="#fbbf24" className="animate-flicker" />
+            <ellipse cx="9" cy="14" rx="2.5" ry="3" fill="#fbbf24" className="animate-flicker" />
+          </g>
+
+          {/* Pumpkin 2 - smaller, near IE */}
+          <g transform="translate(1485, 192)">
+            <ellipse cx="0" cy="14" rx="18" ry="15" fill="#c2410c" />
+            <path d="M0 0 Q4 -10 0 -14" stroke="#166534" strokeWidth="3" fill="none" />
+            <ellipse cx="-6" cy="11" rx="4" ry="5" fill="#000" />
+            <ellipse cx="6" cy="11" rx="4" ry="5" fill="#000" />
+            <path d="M-5 20 Q0 25 5 20" stroke="#000" strokeWidth="2" fill="none" />
+            <ellipse
+              cx="-6"
+              cy="11"
+              rx="2"
+              ry="2.5"
+              fill="#fbbf24"
+              className="animate-flicker"
+              style={{ animationDelay: "0.5s" }}
+            />
+            <ellipse
+              cx="6"
+              cy="11"
+              rx="2"
+              ry="2.5"
+              fill="#fbbf24"
+              className="animate-flicker"
+              style={{ animationDelay: "0.5s" }}
+            />
+          </g>
+
+          {/* ==================== CAULDRON ==================== */}
+          <g transform="translate(580, 195)">
+            <ellipse cx="0" cy="35" rx="35" ry="8" fill="#0a0a0a" />
+            <path
+              d="M-32 10 Q-40 22 -32 40 L32 40 Q40 22 32 10 Q18 0 0 0 Q-18 0 -32 10"
               fill="#1f2937"
               stroke="#374151"
               strokeWidth="2"
             />
-            <ellipse cx="0" cy="5" rx="25" ry="8" fill="#22c55e" opacity="0.7" />
+            <ellipse cx="0" cy="5" rx="28" ry="10" fill="#22c55e" opacity="0.6" />
             {/* Bubbles */}
-            <circle cx="-8" cy="0" r="4" fill="#22c55e" opacity="0.6" className="animate-bubble" />
+            <circle cx="-10" cy="0" r="5" fill="#22c55e" opacity="0.5" className="animate-bubble" />
             <circle
-              cx="5"
-              cy="-3"
-              r="3"
+              cx="8"
+              cy="-4"
+              r="4"
               fill="#4ade80"
-              opacity="0.5"
+              opacity="0.4"
               className="animate-bubble"
-              style={{ animationDelay: "0.5s" }}
+              style={{ animationDelay: "0.6s" }}
             />
             <circle
-              cx="-2"
-              cy="-5"
-              r="3.5"
+              cx="-3"
+              cy="-6"
+              r="4.5"
               fill="#22c55e"
-              opacity="0.7"
+              opacity="0.6"
               className="animate-bubble"
-              style={{ animationDelay: "1s" }}
+              style={{ animationDelay: "1.2s" }}
             />
             <circle
-              cx="10"
+              cx="12"
               cy="0"
-              r="2.5"
+              r="3"
               fill="#86efac"
-              opacity="0.5"
+              opacity="0.4"
               className="animate-bubble"
-              style={{ animationDelay: "1.5s" }}
+              style={{ animationDelay: "1.8s" }}
+            />
+          </g>
+
+          {/* ==================== CANDLES ==================== */}
+          <g transform="translate(850, 170)">
+            <rect x="-6" y="12" width="12" height="30" fill="#fef3c7" />
+            <ellipse cx="0" cy="12" rx="6" ry="2.5" fill="#fef3c7" />
+            <ellipse cx="0" cy="6" rx="5" ry="10" fill="#fbbf24" className="animate-flicker" />
+            <ellipse cx="0" cy="2" rx="2.5" ry="5" fill="#fef3c7" className="animate-flicker" />
+          </g>
+          <g transform="translate(875, 175)">
+            <rect x="-5" y="10" width="10" height="24" fill="#fef3c7" />
+            <ellipse cx="0" cy="10" rx="5" ry="2" fill="#fef3c7" />
+            <ellipse
+              cx="0"
+              cy="4"
+              rx="4"
+              ry="8"
+              fill="#f97316"
+              className="animate-flicker"
+              style={{ animationDelay: "0.35s" }}
             />
           </g>
         </svg>
       </div>
 
-      {/* Floating particles/souls */}
+      {/* ==================== FLOATING PARTICLES/SOULS ==================== */}
       <div className="absolute inset-0">
-        {Array.from({ length: 20 }).map((_, i) => (
+        {Array.from({ length: 25 }).map((_, i) => (
           <div
             key={i}
             className="absolute rounded-full animate-float-up"
             style={{
-              width: `${3 + Math.random() * 5}px`,
-              height: `${3 + Math.random() * 5}px`,
+              width: `${3 + Math.random() * 6}px`,
+              height: `${3 + Math.random() * 6}px`,
               left: `${Math.random() * 100}%`,
-              bottom: `${Math.random() * 30}%`,
+              bottom: `${Math.random() * 35}%`,
               background: i % 3 === 0 ? "#22c55e" : i % 3 === 1 ? "#a855f7" : "#f97316",
-              opacity: 0.4,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${4 + Math.random() * 4}s`,
+              opacity: 0.35,
+              animationDelay: `${Math.random() * 6}s`,
+              animationDuration: `${5 + Math.random() * 5}s`,
             }}
           />
         ))}
       </div>
 
-      {/* Fog layers */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-green-950/30 via-purple-950/10 to-transparent" />
+      {/* ==================== FOG LAYERS ==================== */}
+      <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-green-950/30 via-purple-950/15 to-transparent" />
       <div
-        className="absolute bottom-10 left-0 w-[200%] h-16 animate-fog-drift opacity-30"
+        className="absolute bottom-12 left-0 w-[200%] h-20 animate-fog-drift opacity-25"
         style={{
           background:
-            "linear-gradient(90deg, transparent, rgba(34,197,94,0.3), transparent, rgba(168,85,247,0.2), transparent)",
+            "linear-gradient(90deg, transparent, rgba(34,197,94,0.25), transparent, rgba(168,85,247,0.2), transparent)",
+        }}
+      />
+      <div
+        className="absolute bottom-6 left-0 w-[200%] h-16 animate-fog-drift opacity-20"
+        style={{
+          background:
+            "linear-gradient(90deg, transparent, rgba(168,85,247,0.2), transparent, rgba(34,197,94,0.15), transparent)",
+          animationDelay: "5s",
+          animationDuration: "30s",
         }}
       />
     </div>

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { LoadingSpinner } from "./LoadingState"
-import { ArrowLeft, Edit, Trash2, Mail, Calendar, Hash, Type, ToggleLeft } from "lucide-react"
+import { ArrowLeft, Edit, Trash2, Mail, Calendar, Hash, Type, ToggleLeft, Sparkles } from "lucide-react"
 
 interface ResourceDetailProps {
   resource: any
@@ -106,31 +106,41 @@ export default function ResourceDetail({ resource, id, onEdit }: ResourceDetailP
   const primaryKeyValue = record[resource.primaryKey]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-emerge">
       {/* Back Button */}
       <Button
         variant="outline"
-        className="border-gray-200 text-gray-600 hover:bg-gray-50 bg-transparent"
+        className="border-gray-200 text-gray-600 hover:bg-gray-50 bg-white rounded-xl shadow-sm"
         onClick={() => navigate(`/portal/${resource.name}`)}
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Back to {resource.displayName}
       </Button>
 
-      {/* Main Card */}
-      <Card className="bg-white border-gray-200 shadow-sm">
-        <CardHeader className="border-b border-gray-100">
+      {/* Main Card - Enhanced */}
+      <Card className="bg-white border-0 shadow-xl shadow-gray-200/50 rounded-2xl overflow-hidden">
+        <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl text-gray-900">{resource.displayName.slice(0, -1)} Details</CardTitle>
-              <p className="text-gray-500 mt-1">
-                ID: <span className="font-mono text-indigo-600 font-medium">#{primaryKeyValue}</span>
-              </p>
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-indigo-100 to-purple-50 rounded-xl">
+                <Sparkles className="w-6 h-6 text-indigo-600" />
+              </div>
+              <div>
+                <CardTitle className="text-2xl bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                  {resource.displayName.slice(0, -1)} Details
+                </CardTitle>
+                <p className="text-gray-500 mt-1">
+                  ID:{" "}
+                  <span className="font-mono bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-semibold">
+                    #{primaryKeyValue}
+                  </span>
+                </p>
+              </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <Button
                 variant="outline"
-                className="border-gray-200 text-gray-600 hover:bg-gray-50 bg-transparent"
+                className="border-gray-200 text-gray-600 hover:bg-gray-50 bg-white rounded-xl"
                 onClick={onEdit}
               >
                 <Edit className="w-4 h-4 mr-2" />
@@ -138,7 +148,7 @@ export default function ResourceDetail({ resource, id, onEdit }: ResourceDetailP
               </Button>
               <Button
                 variant="outline"
-                className="border-red-200 text-red-600 hover:bg-red-50 bg-transparent"
+                className="border-red-200 text-red-600 hover:bg-red-50 bg-white rounded-xl"
                 onClick={() => window.alert("Delete is not wired yet. This is a demo action.")}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -149,36 +159,45 @@ export default function ResourceDetail({ resource, id, onEdit }: ResourceDetailP
         </CardHeader>
         <CardContent className="pt-6">
           {error && (
-            <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm mb-6">
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm mb-6">
               {error}
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {resource.fields.map((field: any) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {resource.fields.map((field: any, index: number) => {
               const value = record[field.name]
               return (
-                <div key={field.name} className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                  <div className="flex items-center gap-2 text-gray-500 text-sm mb-2">
-                    {getFieldIcon(field.type)}
-                    <span className="uppercase tracking-wide font-medium">{field.displayName}</span>
+                <div
+                  key={field.name}
+                  className="group p-5 bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-100 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-100/50 transition-all duration-300"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                >
+                  <div className="flex items-center gap-2 text-gray-500 text-sm mb-3">
+                    <div className="p-1.5 bg-gray-100 rounded-lg group-hover:bg-indigo-100 transition-colors">
+                      {getFieldIcon(field.type)}
+                    </div>
+                    <span className="uppercase tracking-wider font-semibold text-xs">{field.displayName}</span>
                   </div>
                   {field.type === "boolean" ? (
                     <Badge
                       className={
                         value
-                          ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
-                          : "bg-gray-200 text-gray-600 hover:bg-gray-200"
+                          ? "bg-gradient-to-r from-emerald-100 to-emerald-50 text-emerald-700 hover:from-emerald-100 border-emerald-200"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-100"
                       }
                     >
                       {formatValue(value, field)}
                     </Badge>
                   ) : field.type === "email" && value ? (
-                    <a href={`mailto:${value}`} className="text-indigo-600 hover:underline font-medium">
+                    <a
+                      href={`mailto:${value}`}
+                      className="text-indigo-600 hover:text-indigo-700 hover:underline font-medium"
+                    >
                       {value}
                     </a>
                   ) : (
-                    <div className="text-gray-900 font-medium">{formatValue(value, field)}</div>
+                    <div className="text-gray-900 font-medium text-lg">{formatValue(value, field)}</div>
                   )}
                 </div>
               )

@@ -8,15 +8,15 @@ export default function SpookyLoader({ message, variant = "analyze" }: SpookyLoa
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden"
       style={{
         background: isGenerate
           ? "radial-gradient(ellipse at center, #2d1b4e 0%, #1a0a2e 40%, #0d0015 100%)"
           : "radial-gradient(ellipse at center, #0a2e1a 0%, #0d1a0a 40%, #050d05 100%)",
       }}
     >
-      {/* Mystical particles */}
-      <div className="absolute inset-0 overflow-hidden">
+      {/* Mystical particles - behind everything */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {Array.from({ length: 60 }).map((_, i) => (
           <div
             key={i}
@@ -37,163 +37,270 @@ export default function SpookyLoader({ message, variant = "analyze" }: SpookyLoa
                   : i % 3 === 1
                     ? "#4ade80"
                     : "#86efac",
-              animation: `particle-rise ${4 + Math.random() * 4}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 2}s`,
+              animation: `particle-rise ${5 + Math.random() * 5}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 3}s`,
               opacity: 0.5,
             }}
           />
         ))}
       </div>
 
-      {/* Floating runes background */}
-      <div className="absolute inset-0">
-        {(isGenerate ? ["⚗", "✨", "🔮", "⭐", "🌙", "💫"] : ["☠", "🦴", "👻", "💀", "⚰", "🕯"]).map((rune, i) => (
-          <span
-            key={i}
-            className="absolute text-3xl opacity-30 animate-float-up"
-            style={{
-              left: `${5 + i * 16}%`,
-              top: `${15 + (i % 2) * 60}%`,
-              animationDelay: `${i * 0.5}s`,
-              animationDuration: `${3 + i * 0.5}s`,
-            }}
-          >
-            {rune}
-          </span>
-        ))}
+      {/* Outer rotating ring */}
+      <div className="absolute animate-spin-slow" style={{ width: "500px", height: "500px" }}>
+        <svg viewBox="0 0 500 500" className="w-full h-full">
+          <defs>
+            <linearGradient id="loaderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={isGenerate ? "#a855f7" : "#22c55e"} />
+              <stop offset="50%" stopColor={isGenerate ? "#f97316" : "#4ade80"} />
+              <stop offset="100%" stopColor={isGenerate ? "#a855f7" : "#22c55e"} />
+            </linearGradient>
+          </defs>
+          <circle
+            cx="250"
+            cy="250"
+            r="220"
+            fill="none"
+            stroke="url(#loaderGradient)"
+            strokeWidth="2"
+            strokeDasharray="20 10 5 10"
+            opacity="0.5"
+          />
+          {Array.from({ length: 12 }).map((_, i) => (
+            <text
+              key={i}
+              x="250"
+              y="40"
+              textAnchor="middle"
+              fill={isGenerate ? "#a855f7" : "#22c55e"}
+              fontSize="16"
+              transform={`rotate(${i * 30} 250 250)`}
+              opacity="0.6"
+            >
+              {isGenerate
+                ? ["⚗", "✨", "🔮", "⭐", "🌙", "💫", "🌟", "✧", "⚡", "🔥", "💎", "🌀"][i]
+                : ["☠", "⚰", "🕯", "🦇", "👻", "🎃", "🕸", "💀", "🦴", "⚱", "🪦", "🌑"][i]}
+            </text>
+          ))}
+        </svg>
       </div>
 
-      {/* Main loader content */}
-      <div className="relative text-center z-10">
-        {/* Outer rotating ring with runes */}
-        <div className="absolute -inset-32 animate-spin-slow">
-          <svg viewBox="0 0 400 400" className="w-full h-full">
-            <defs>
-              <linearGradient id="loaderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={isGenerate ? "#a855f7" : "#22c55e"} />
-                <stop offset="50%" stopColor={isGenerate ? "#f97316" : "#4ade80"} />
-                <stop offset="100%" stopColor={isGenerate ? "#a855f7" : "#22c55e"} />
-              </linearGradient>
-            </defs>
-            <circle
-              cx="200"
-              cy="200"
-              r="180"
+      {/* Middle reverse ring */}
+      <div className="absolute animate-spin-reverse" style={{ width: "380px", height: "380px" }}>
+        <svg viewBox="0 0 380 380" className="w-full h-full">
+          <circle
+            cx="190"
+            cy="190"
+            r="160"
+            fill="none"
+            stroke={isGenerate ? "#c084fc" : "#4ade80"}
+            strokeWidth="1.5"
+            strokeDasharray="10 20 30 10"
+            opacity="0.35"
+          />
+          {isGenerate && (
+            <path
+              d="M190 40 L215 130 L310 130 L235 180 L260 275 L190 225 L120 275 L145 180 L70 130 L165 130 Z"
               fill="none"
-              stroke="url(#loaderGradient)"
-              strokeWidth="2"
-              strokeDasharray="20 10 5 10"
-              opacity="0.6"
+              stroke="#f97316"
+              strokeWidth="1"
+              opacity="0.3"
             />
-            {/* Rune symbols */}
-            {Array.from({ length: 8 }).map((_, i) => (
-              <text
-                key={i}
-                x="200"
-                y="30"
-                textAnchor="middle"
-                fill={isGenerate ? "#a855f7" : "#22c55e"}
-                fontSize="16"
-                transform={`rotate(${i * 45} 200 200)`}
-                opacity="0.8"
-                className="animate-pulse"
-              >
-                {isGenerate
-                  ? ["⚗", "✨", "🔮", "⭐", "🌙", "💫", "🌟", "✧"][i]
-                  : ["☠", "⚰", "🕯", "🦇", "👻", "🎃", "🕸", "💀"][i]}
-              </text>
-            ))}
-          </svg>
-        </div>
+          )}
+        </svg>
+      </div>
 
-        {/* Middle reverse rotating ring */}
-        <div className="absolute -inset-24 animate-spin-reverse">
-          <svg viewBox="0 0 300 300" className="w-full h-full">
-            <circle
-              cx="150"
-              cy="150"
-              r="130"
-              fill="none"
-              stroke={isGenerate ? "#c084fc" : "#4ade80"}
-              strokeWidth="1.5"
-              strokeDasharray="10 20 30 10"
-              opacity="0.4"
-            />
-            {/* Inner pentagram for generate */}
-            {isGenerate && (
-              <path
-                d="M150 30 L175 110 L260 110 L195 155 L215 240 L150 195 L85 240 L105 155 L40 110 L125 110 Z"
-                fill="none"
-                stroke="#f97316"
-                strokeWidth="1"
-                opacity="0.3"
-              />
-            )}
-          </svg>
-        </div>
+      {/* Energy glow behind center */}
+      <div
+        className="absolute rounded-full animate-pulse-glow"
+        style={{
+          width: "280px",
+          height: "280px",
+          background: isGenerate
+            ? "radial-gradient(circle, rgba(168,85,247,0.4) 0%, rgba(249,115,22,0.2) 50%, transparent 70%)"
+            : "radial-gradient(circle, rgba(34,197,94,0.4) 0%, rgba(74,222,128,0.2) 50%, transparent 70%)",
+        }}
+      />
 
-        {/* Energy glow */}
-        <div
-          className="absolute -inset-16 rounded-full animate-pulse-glow"
-          style={{
-            background: isGenerate
-              ? "radial-gradient(circle, rgba(168,85,247,0.4) 0%, rgba(249,115,22,0.2) 50%, transparent 70%)"
-              : "radial-gradient(circle, rgba(34,197,94,0.4) 0%, rgba(74,222,128,0.2) 50%, transparent 70%)",
-          }}
-        />
-
-        {/* Center icon */}
-        <div className="relative z-10">
+      {/* Main Content Container - properly stacked */}
+      <div className="relative z-20 flex flex-col items-center">
+        {/* Visual Animation Area */}
+        <div className="relative mb-6" style={{ height: isGenerate ? "280px" : "180px" }}>
           {isGenerate ? (
-            // Portal opening animation
-            <div className="relative mb-8">
-              <svg viewBox="0 0 100 100" className="w-28 h-28 mx-auto animate-pulse">
-                <defs>
-                  <radialGradient id="portalGradient" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stopColor="#f97316" />
-                    <stop offset="50%" stopColor="#a855f7" />
-                    <stop offset="100%" stopColor="#1a0a2e" />
-                  </radialGradient>
-                </defs>
-                <ellipse cx="50" cy="50" rx="45" ry="45" fill="url(#portalGradient)" opacity="0.8" />
-                <ellipse cx="50" cy="50" rx="35" ry="35" fill="#1a0a2e" />
-                <ellipse cx="50" cy="50" rx="25" ry="25" fill="url(#portalGradient)" opacity="0.6" />
-                <ellipse cx="50" cy="50" rx="15" ry="15" fill="#0d0015" />
-                {/* Swirling effect */}
-                <path
-                  d="M50 15 Q70 30 50 50 Q30 70 50 85"
-                  fill="none"
-                  stroke="#f97316"
-                  strokeWidth="2"
-                  opacity="0.5"
-                  className="animate-spin-slow"
-                  style={{ transformOrigin: "50px 50px" }}
-                />
-              </svg>
-              {/* Portal energy */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-8 h-8 bg-orange-500 rounded-full blur-lg animate-pulse" />
+            // NECROMANCER ANIMATION
+            <div className="relative flex flex-col items-center">
+              {/* Necromancer Figure */}
+              <div className="animate-necro-cast">
+                <svg viewBox="0 0 200 240" className="w-44 h-52">
+                  <defs>
+                    <linearGradient id="capeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#1a0a2e" />
+                      <stop offset="100%" stopColor="#0d0015" />
+                    </linearGradient>
+                    <filter id="necGlow">
+                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+
+                  {/* Cape */}
+                  <path
+                    d="M100 45 Q45 70 40 220 L70 210 L100 220 L130 210 L160 220 Q155 70 100 45"
+                    fill="url(#capeGrad)"
+                    className="animate-cape-flutter"
+                    style={{ transformOrigin: "100px 45px" }}
+                  />
+                  <path d="M100 50 Q55 75 53 200 L100 190 L147 200 Q145 75 100 50" fill="#2d1b4e" opacity="0.5" />
+
+                  {/* Hood */}
+                  <path d="M70 50 Q100 20 130 50 Q140 65 130 80 L100 85 L70 80 Q60 65 70 50" fill="#0d0015" />
+                  <ellipse cx="100" cy="62" rx="18" ry="22" fill="#0a0a0a" />
+
+                  {/* Glowing eyes */}
+                  <ellipse
+                    cx="92"
+                    cy="58"
+                    rx="4"
+                    ry="5"
+                    fill="#22c55e"
+                    filter="url(#necGlow)"
+                    className="animate-pulse"
+                  />
+                  <ellipse
+                    cx="108"
+                    cy="58"
+                    rx="4"
+                    ry="5"
+                    fill="#22c55e"
+                    filter="url(#necGlow)"
+                    className="animate-pulse"
+                  />
+
+                  {/* Arms raised */}
+                  <path d="M65 90 Q30 80 25 110 Q20 120 30 130 L50 120" fill="#1a0a2e" />
+                  <path d="M135 90 Q170 80 175 110 Q180 120 170 130 L150 120" fill="#1a0a2e" />
+
+                  {/* Skeletal hands */}
+                  <g fill="#d1d5db" className="animate-hand-gesture">
+                    <circle cx="28" cy="128" r="7" />
+                    <path
+                      d="M22 120 L18 105 M26 118 L24 100 M30 118 L32 98 M34 120 L38 105"
+                      stroke="#d1d5db"
+                      strokeWidth="2"
+                    />
+                  </g>
+                  <g fill="#d1d5db" className="animate-hand-gesture" style={{ animationDelay: "0.5s" }}>
+                    <circle cx="172" cy="128" r="7" />
+                    <path
+                      d="M178 120 L182 105 M174 118 L176 100 M170 118 L168 98 M166 120 L162 105"
+                      stroke="#d1d5db"
+                      strokeWidth="2"
+                    />
+                  </g>
+
+                  {/* Staff */}
+                  <g className="animate-staff-glow">
+                    <rect x="165" y="90" width="6" height="130" rx="2" fill="#4a3728" />
+                    <circle cx="168" cy="85" r="14" fill="#22c55e" opacity="0.8" />
+                    <circle cx="168" cy="85" r="9" fill="#4ade80" className="animate-pulse" />
+                    <circle cx="168" cy="85" r="4" fill="#86efac" />
+                  </g>
+
+                  {/* Energy beams */}
+                  <path
+                    d="M30 120 Q100 90 100 140"
+                    fill="none"
+                    stroke="#22c55e"
+                    strokeWidth="2"
+                    opacity="0.5"
+                    className="animate-pulse"
+                    strokeDasharray="4 4"
+                  />
+                  <path
+                    d="M170 120 Q100 90 100 140"
+                    fill="none"
+                    stroke="#a855f7"
+                    strokeWidth="2"
+                    opacity="0.5"
+                    className="animate-pulse"
+                    strokeDasharray="4 4"
+                  />
+                </svg>
+              </div>
+
+              {/* Magic circle below necromancer */}
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-56 h-14">
+                <svg
+                  viewBox="0 0 200 50"
+                  className="w-full h-full animate-magic-circle"
+                  style={{ transformOrigin: "100px 25px" }}
+                >
+                  <ellipse
+                    cx="100"
+                    cy="25"
+                    rx="90"
+                    ry="18"
+                    fill="none"
+                    stroke="#a855f7"
+                    strokeWidth="2"
+                    opacity="0.5"
+                  />
+                  <ellipse
+                    cx="100"
+                    cy="25"
+                    rx="70"
+                    ry="14"
+                    fill="none"
+                    stroke="#f97316"
+                    strokeWidth="1"
+                    opacity="0.4"
+                  />
+                  <ellipse
+                    cx="100"
+                    cy="25"
+                    rx="50"
+                    ry="10"
+                    fill="none"
+                    stroke="#c084fc"
+                    strokeWidth="1"
+                    opacity="0.3"
+                  />
+                  {["◈", "◇", "○", "△", "☆", "◎"].map((r, i) => (
+                    <text
+                      key={i}
+                      x={100 + Math.cos((i * Math.PI) / 3) * 75}
+                      y={25 + Math.sin((i * Math.PI) / 3) * 14}
+                      fill="#a855f7"
+                      fontSize="8"
+                      textAnchor="middle"
+                      className="animate-pulse"
+                    >
+                      {r}
+                    </text>
+                  ))}
+                </svg>
               </div>
             </div>
           ) : (
-            // Skull with energy
-            <div className="relative mb-8">
-              <svg viewBox="0 0 100 120" className="w-28 h-32 mx-auto">
+            // ANALYZE - Skull
+            <div className="relative">
+              <svg viewBox="0 0 100 120" className="w-32 h-40">
                 <defs>
-                  <linearGradient id="analyzeSkullGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <linearGradient id="skullGrad" x1="0%" y1="0%" x2="0%" y2="100%">
                     <stop offset="0%" stopColor="#e0e0e0" />
                     <stop offset="100%" stopColor="#808080" />
                   </linearGradient>
-                  <filter id="glowFilter">
-                    <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                  <filter id="glowFilt">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
                     <feMerge>
-                      <feMergeNode in="coloredBlur" />
+                      <feMergeNode in="blur" />
                       <feMergeNode in="SourceGraphic" />
                     </feMerge>
                   </filter>
                 </defs>
-
-                <ellipse cx="50" cy="45" rx="38" ry="40" fill="url(#analyzeSkullGradient)" />
+                <ellipse cx="50" cy="45" rx="40" ry="42" fill="url(#skullGrad)" />
                 <ellipse cx="32" cy="40" rx="10" ry="12" fill="#0a0a0a" />
                 <ellipse cx="68" cy="40" rx="10" ry="12" fill="#0a0a0a" />
                 <ellipse
@@ -202,7 +309,7 @@ export default function SpookyLoader({ message, variant = "analyze" }: SpookyLoa
                   rx="5"
                   ry="6"
                   fill="#22c55e"
-                  filter="url(#glowFilter)"
+                  filter="url(#glowFilt)"
                   className="animate-pulse"
                 />
                 <ellipse
@@ -211,25 +318,82 @@ export default function SpookyLoader({ message, variant = "analyze" }: SpookyLoa
                   rx="5"
                   ry="6"
                   fill="#22c55e"
-                  filter="url(#glowFilter)"
+                  filter="url(#glowFilt)"
                   className="animate-pulse"
                 />
-                <path d="M45 55 L50 68 L55 55" fill="#1a1a1a" />
-                <rect x="32" y="75" width="7" height="11" rx="1" fill="#d0d0d0" />
-                <rect x="41" y="75" width="7" height="13" rx="1" fill="#d0d0d0" />
-                <rect x="50" y="75" width="7" height="13" rx="1" fill="#d0d0d0" />
-                <rect x="59" y="75" width="7" height="11" rx="1" fill="#d0d0d0" />
+                <path d="M45 55 L50 70 L55 55" fill="#1a1a1a" />
+                <rect x="32" y="78" width="7" height="12" rx="1" fill="#d0d0d0" />
+                <rect x="41" y="78" width="7" height="14" rx="1" fill="#d0d0d0" />
+                <rect x="50" y="78" width="7" height="14" rx="1" fill="#d0d0d0" />
+                <rect x="59" y="78" width="7" height="12" rx="1" fill="#d0d0d0" />
               </svg>
-              {/* Energy aura */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-20 h-20 bg-green-500 rounded-full blur-2xl opacity-40 animate-pulse" />
+              <div className="absolute inset-0 flex items-center justify-center -z-10">
+                <div className="w-24 h-24 bg-green-500 rounded-full blur-2xl opacity-40 animate-pulse" />
               </div>
             </div>
           )}
+        </div>
 
-          {/* Message */}
+        {/* UI Transformation - only for generate, BELOW the necromancer */}
+        {isGenerate && (
+          <div className="flex items-center gap-6 mb-6">
+            {/* Old UI */}
+            <div
+              className="animate-ui-crumble"
+              style={{ animationDuration: "4s", animationIterationCount: "infinite" }}
+            >
+              <svg viewBox="0 0 60 70" className="w-12 h-14">
+                <rect x="5" y="5" width="50" height="60" rx="4" fill="#374151" stroke="#4b5563" strokeWidth="2" />
+                <rect x="10" y="10" width="40" height="8" fill="#6b7280" />
+                <rect x="10" y="22" width="25" height="4" fill="#9ca3af" />
+                <rect x="10" y="30" width="35" height="4" fill="#9ca3af" />
+                <rect x="10" y="38" width="20" height="4" fill="#9ca3af" />
+                <rect x="10" y="50" width="40" height="10" rx="2" fill="#4b5563" />
+                <text x="30" y="58" textAnchor="middle" fill="#9ca3af" fontSize="6">
+                  OLD
+                </text>
+              </svg>
+            </div>
+
+            {/* Arrow */}
+            <svg viewBox="0 0 40 20" className="w-10 h-5 animate-energy-beam">
+              <defs>
+                <linearGradient id="arrowGrad" x1="0%" y1="50%" x2="100%" y2="50%">
+                  <stop offset="0%" stopColor="#22c55e" />
+                  <stop offset="50%" stopColor="#a855f7" />
+                  <stop offset="100%" stopColor="#f97316" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M0 10 L30 10 L25 5 M30 10 L25 15"
+                fill="none"
+                stroke="url(#arrowGrad)"
+                strokeWidth="3"
+                strokeLinecap="round"
+              />
+            </svg>
+
+            {/* New UI */}
+            <div className="animate-ui-emerge" style={{ animationDuration: "4s", animationIterationCount: "infinite" }}>
+              <svg viewBox="0 0 60 70" className="w-12 h-14">
+                <rect x="5" y="5" width="50" height="60" rx="4" fill="#1e1b4b" stroke="#6366f1" strokeWidth="2" />
+                <rect x="10" y="10" width="40" height="8" rx="2" fill="#6366f1" />
+                <rect x="10" y="22" width="25" height="4" rx="1" fill="#818cf8" />
+                <rect x="10" y="30" width="35" height="4" rx="1" fill="#a78bfa" />
+                <rect x="10" y="38" width="20" height="4" rx="1" fill="#c4b5fd" />
+                <rect x="10" y="50" width="40" height="10" rx="4" fill="#8b5cf6" />
+                <text x="30" y="58" textAnchor="middle" fill="#fff" fontSize="6" fontWeight="bold">
+                  NEW
+                </text>
+              </svg>
+            </div>
+          </div>
+        )}
+
+        {/* Text Content - always visible, never overlapped */}
+        <div className="text-center">
           <p
-            className="text-2xl font-bold mb-4"
+            className="text-2xl font-bold mb-3"
             style={{
               background: isGenerate
                 ? "linear-gradient(135deg, #a855f7, #f97316)"
@@ -241,14 +405,15 @@ export default function SpookyLoader({ message, variant = "analyze" }: SpookyLoa
             {message}
           </p>
 
-          {/* Subtext */}
-          <p className="text-gray-400 mb-6">
-            {isGenerate ? "Opening the resurrection portal..." : "Analyzing ancient API structures..."}
+          <p className="text-gray-400 mb-5 text-sm">
+            {isGenerate
+              ? "The necromancer transforms your legacy into modern glory..."
+              : "Analyzing ancient API structures..."}
           </p>
 
           {/* Loading bar */}
-          <div className="w-64 mx-auto">
-            <div className="h-2 bg-slate-900/80 rounded-full overflow-hidden border border-slate-700">
+          <div className="w-72 mx-auto">
+            <div className="h-2.5 bg-slate-900/80 rounded-full overflow-hidden border border-slate-700">
               <div
                 className="h-full rounded-full animate-loading-bar"
                 style={{
@@ -262,15 +427,15 @@ export default function SpookyLoader({ message, variant = "analyze" }: SpookyLoa
           </div>
 
           {/* Loading dots */}
-          <div className="flex justify-center gap-3 mt-6">
-            {[0, 1, 2, 3].map((i) => (
+          <div className="flex justify-center gap-2 mt-5">
+            {[0, 1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="w-3 h-3 rounded-full"
+                className="w-2.5 h-2.5 rounded-full"
                 style={{
                   background: isGenerate ? (i % 2 === 0 ? "#a855f7" : "#f97316") : i % 2 === 0 ? "#22c55e" : "#4ade80",
                   animation: "bounce 1s ease-in-out infinite",
-                  animationDelay: `${i * 0.15}s`,
+                  animationDelay: `${i * 0.12}s`,
                 }}
               />
             ))}
@@ -279,7 +444,7 @@ export default function SpookyLoader({ message, variant = "analyze" }: SpookyLoa
       </div>
 
       {/* Bottom fog */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/50 to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
     </div>
   )
 }

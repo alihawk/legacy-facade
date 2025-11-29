@@ -24,17 +24,9 @@ body {
   animation: ghost-float 3s ease-in-out infinite;
 }
 
-/* Spooky glow effect */
+/* Spooky glow effects */
 .spooky-glow {
   box-shadow: 0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.3);
-}
-
-.spooky-glow-purple {
-  box-shadow: 0 0 20px rgba(168, 85, 247, 0.5), 0 0 40px rgba(168, 85, 247, 0.3);
-}
-
-.spooky-glow-orange {
-  box-shadow: 0 0 20px rgba(249, 115, 22, 0.5), 0 0 40px rgba(249, 115, 22, 0.3);
 }
 
 /* Spin animations */
@@ -116,34 +108,10 @@ body {
   }
 }
 
-/* Lightning */
-@keyframes lightning {
-  0%,
-  100% {
-    opacity: 0;
-  }
-  5% {
-    opacity: 1;
-  }
-  10% {
-    opacity: 0;
-  }
-  15% {
-    opacity: 0.8;
-  }
-  20% {
-    opacity: 0;
-  }
-}
-
-.animate-lightning {
-  animation: lightning 6s ease-in-out infinite;
-}
-
 /* Emerge animation */
 @keyframes emerge {
   0% {
-    transform: translateY(50px);
+    transform: translateY(30px);
     opacity: 0;
   }
   100% {
@@ -153,33 +121,13 @@ body {
 }
 
 .animate-emerge {
-  animation: emerge 1s ease-out forwards;
-}
-
-/* Energy channel */
-@keyframes energy-channel {
-  0% {
-    transform: scale(0.9);
-    opacity: 0.5;
-  }
-  50% {
-    transform: scale(1.15);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(0.9);
-    opacity: 0.5;
-  }
-}
-
-.animate-energy-channel {
-  animation: energy-channel 1.5s ease-in-out infinite;
+  animation: emerge 0.8s ease-out forwards;
 }
 
 /* Necro rise */
 @keyframes necro-rise {
   0% {
-    transform: translateY(20px);
+    transform: translateY(30px);
     filter: brightness(0.5);
   }
   50% {
@@ -193,28 +141,7 @@ body {
 }
 
 .animate-necro-rise {
-  animation: necro-rise 2s ease-out forwards;
-}
-
-/* Ghost drift */
-@keyframes ghost-drift {
-  0%,
-  100% {
-    transform: translate(0, 0) rotate(0deg);
-    opacity: 0.2;
-  }
-  25% {
-    transform: translate(20px, -20px) rotate(5deg);
-    opacity: 0.3;
-  }
-  50% {
-    transform: translate(0, -40px) rotate(0deg);
-    opacity: 0.2;
-  }
-  75% {
-    transform: translate(-20px, -20px) rotate(-5deg);
-    opacity: 0.3;
-  }
+  animation: necro-rise 1.5s ease-out forwards;
 }
 
 /* Shimmer effect */
@@ -351,24 +278,6 @@ body {
   animation: bubble 2.5s ease-out infinite;
 }
 
-/* Skull bob animation */
-@keyframes skull-bob {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  25% {
-    transform: translateY(-8px) rotate(-5deg);
-  }
-  75% {
-    transform: translateY(-8px) rotate(5deg);
-  }
-}
-
-.animate-skull-bob {
-  animation: skull-bob 4s ease-in-out infinite;
-}
-
 /* Twinkle for stars */
 @keyframes twinkle {
   0%,
@@ -401,15 +310,161 @@ body {
   animation: gradient-shift 8s ease-in-out infinite;
 }
 
-/* ========== CARD HOVER EFFECTS ========== */
-.spooky-card {
-  @apply transition-all duration-300;
-  border: 1px solid rgba(34, 197, 94, 0.2);
+/* ========== ENHANCED ANIMATIONS ========== */
+
+/* Dracula float animation */
+@keyframes dracula-float {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(20px, -30px) rotate(3deg);
+  }
+  50% {
+    transform: translate(40px, -15px) rotate(-2deg);
+  }
+  75% {
+    transform: translate(20px, -40px) rotate(2deg);
+  }
 }
 
-.spooky-card:hover {
-  border-color: rgba(34, 197, 94, 0.5);
-  box-shadow: 0 0 30px rgba(34, 197, 94, 0.2), inset 0 0 30px rgba(34, 197, 94, 0.05);
+.animate-dracula-float {
+  animation: dracula-float 15s ease-in-out infinite;
+}
+
+/* Owl blink animation */
+@keyframes owl-blink {
+  0%,
+  45%,
+  55%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.1);
+  }
+}
+
+.animate-owl-blink {
+  animation: owl-blink 4s ease-in-out infinite;
+}
+
+/* Owl head turn */
+@keyframes owl-turn {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(-20deg);
+  }
+  70% {
+    transform: rotate(20deg);
+  }
+}
+
+.animate-owl-turn {
+  animation: owl-turn 8s ease-in-out infinite;
+}
+
+/* Tree sway animation */
+@keyframes tree-sway {
+  0%,
+  100% {
+    transform: rotate(-1deg) skewX(0deg);
+  }
+  50% {
+    transform: rotate(1deg) skewX(1deg);
+  }
+}
+
+.animate-tree-sway {
+  animation: tree-sway 6s ease-in-out infinite;
+}
+
+/* Cape flutter */
+@keyframes cape-flutter {
+  0%,
+  100% {
+    transform: skewX(0deg) scaleX(1);
+  }
+  25% {
+    transform: skewX(5deg) scaleX(1.08);
+  }
+  75% {
+    transform: skewX(-5deg) scaleX(0.92);
+  }
+}
+
+.animate-cape-flutter {
+  animation: cape-flutter 4s ease-in-out infinite;
+}
+
+/* Window flicker */
+@keyframes window-flicker {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  20% {
+    opacity: 0.2;
+  }
+  30% {
+    opacity: 0.6;
+  }
+  40% {
+    opacity: 0.1;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.animate-window-flicker {
+  animation: window-flicker 4s ease-in-out infinite;
+}
+
+/* New glitch shake animation for intro */
+@keyframes glitch-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  10% {
+    transform: translate(-2px, 1px);
+  }
+  20% {
+    transform: translate(2px, -1px);
+  }
+  30% {
+    transform: translate(-1px, 2px);
+  }
+  40% {
+    transform: translate(1px, -2px);
+  }
+  50% {
+    transform: translate(-2px, -1px);
+  }
+  60% {
+    transform: translate(2px, 1px);
+  }
+  70% {
+    transform: translate(-1px, -2px);
+  }
+  80% {
+    transform: translate(1px, 2px);
+  }
+  90% {
+    transform: translate(-2px, 1px);
+  }
+}
+
+.animate-glitch-shake {
+  animation: glitch-shake 0.3s ease-in-out infinite;
 }
 
 /* ========== BUTTON EFFECTS ========== */
@@ -461,6 +516,77 @@ body {
 
 .spooky-input::placeholder {
   @apply text-gray-600;
+}
+
+/* ========== CARD STYLES ========== */
+.spooky-card {
+  @apply transition-all duration-300;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.spooky-card:hover {
+  border-color: rgba(34, 197, 94, 0.5);
+  box-shadow: 0 0 30px rgba(34, 197, 94, 0.2), inset 0 0 30px rgba(34, 197, 94, 0.05);
+}
+
+/* ========== MODERN UI ENHANCEMENTS ========== */
+
+/* Glass card effect */
+.glass-card {
+  @apply backdrop-blur-xl bg-white/80 border border-white/20 shadow-xl;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+}
+
+.glass-card-dark {
+  @apply backdrop-blur-xl bg-slate-900/80 border border-slate-700/50 shadow-xl;
+}
+
+/* Gradient border */
+.gradient-border {
+  position: relative;
+}
+
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+/* Smooth hover lift */
+.hover-lift {
+  @apply transition-all duration-300;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* Shimmer button */
+.shimmer-btn {
+  @apply relative overflow-hidden;
+}
+
+.shimmer-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.shimmer-btn:hover::after {
+  left: 100%;
 }
 
 /* ========== TAB STYLES ========== */

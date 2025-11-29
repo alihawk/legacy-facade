@@ -7,436 +7,358 @@ interface ResurrectorIntroProps {
 }
 
 export default function ResurrectorIntro({ onComplete }: ResurrectorIntroProps) {
-  const [phase, setPhase] = useState<"summoning" | "rising" | "portal" | "complete">("summoning")
-  const [progress, setProgress] = useState(0)
+  const [phase, setPhase] = useState<"awakening" | "corruption" | "resurrection" | "complete">("awakening")
+  const [textIndex, setTextIndex] = useState(0)
 
+  const bootMessages = [
+    "> Initializing Legacy System v0.1...",
+    "> Loading deprecated modules...",
+    "> WARNING: SOAP endpoints failing",
+    "> ERROR: XML parser corrupted",
+    "> CRITICAL: REST API unresponsive",
+    "> Summoning necromancer.exe...",
+  ]
+
+  // Phase 1: Awakening with typewriter boot messages (2s total)
   useEffect(() => {
-    const summoningTimer = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 40) {
-          clearInterval(summoningTimer)
-          setPhase("rising")
-          return prev
-        }
-        return prev + 1
-      })
-    }, 70)
-
-    return () => clearInterval(summoningTimer)
-  }, [])
-
-  useEffect(() => {
-    if (phase === "rising") {
-      const risingTimer = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 75) {
-            clearInterval(risingTimer)
-            setPhase("portal")
+    if (phase === "awakening") {
+      const messageTimer = setInterval(() => {
+        setTextIndex((prev) => {
+          if (prev >= bootMessages.length - 1) {
+            clearInterval(messageTimer)
+            setTimeout(() => setPhase("corruption"), 400)
             return prev
           }
           return prev + 1
         })
-      }, 70)
-
-      return () => clearInterval(risingTimer)
+      }, 280)
+      return () => clearInterval(messageTimer)
     }
   }, [phase])
 
+  // Phase 2: Corruption glitch (0.8s)
   useEffect(() => {
-    if (phase === "portal") {
-      const portalTimer = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(portalTimer)
-            setPhase("complete")
-            return prev
-          }
-          return prev + 1
-        })
-      }, 80)
-
-      return () => clearInterval(portalTimer)
+    if (phase === "corruption") {
+      const timer = setTimeout(() => setPhase("resurrection"), 800)
+      return () => clearTimeout(timer)
     }
   }, [phase])
 
+  // Phase 3: Resurrection & Reveal (1.5s)
+  useEffect(() => {
+    if (phase === "resurrection") {
+      const timer = setTimeout(() => setPhase("complete"), 1500)
+      return () => clearTimeout(timer)
+    }
+  }, [phase])
+
+  // Complete - fade out
   useEffect(() => {
     if (phase === "complete") {
-      const completeTimer = setTimeout(() => {
-        onComplete()
-      }, 1200)
-
-      return () => clearTimeout(completeTimer)
+      const timer = setTimeout(() => onComplete(), 800)
+      return () => clearTimeout(timer)
     }
   }, [phase, onComplete])
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
-        phase === "complete" ? "opacity-0" : "opacity-100"
+      className={`fixed inset-0 z-50 flex items-center justify-center overflow-hidden transition-all duration-700 ${
+        phase === "complete" ? "opacity-0 scale-105" : "opacity-100 scale-100"
       }`}
       style={{
-        background: "radial-gradient(ellipse at center, #1a0a2e 0%, #0d0015 50%, #000000 100%)",
+        background:
+          phase === "awakening" || phase === "corruption"
+            ? "#000"
+            : "radial-gradient(ellipse at center, #1a0a2e 0%, #0d0015 50%, #000 100%)",
       }}
     >
-      {/* Animated graveyard silhouette at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-48 z-10">
-        <svg viewBox="0 0 1200 200" className="w-full h-full" preserveAspectRatio="none">
-          {/* Ground */}
-          <path
-            d="M0 200 L0 160 Q100 155 200 160 Q300 165 400 158 Q500 155 600 162 Q700 158 800 160 Q900 165 1000 158 Q1100 155 1200 160 L1200 200 Z"
-            fill="#0a0a0a"
-          />
-
-          {/* Tombstones */}
-          <path d="M100 160 L100 110 Q100 95 115 95 Q130 95 130 110 L130 160" fill="#1a1a2e" />
-          <text x="115" y="135" textAnchor="middle" fill="#22c55e" fontSize="12" className="animate-pulse">
-            RIP
-          </text>
-
-          <path d="M250 160 L250 120 L265 100 L280 120 L280 160" fill="#1a1a2e" />
-          <path d="M265 115 L265 145 M255 125 L275 125" stroke="#4a1a6b" strokeWidth="3" />
-
-          <path d="M400 160 L400 100 Q400 80 420 80 Q440 80 440 100 L440 160" fill="#1a1a2e" />
-
-          <path d="M550 160 L550 130 L570 110 L590 130 L590 160" fill="#1a1a2e" />
-
-          <path d="M750 160 L750 95 Q750 75 775 75 Q800 75 800 95 L800 160" fill="#1a1a2e" />
-          <text x="775" y="130" textAnchor="middle" fill="#22c55e" fontSize="10" className="animate-pulse">
-            REST
-          </text>
-          <text x="775" y="145" textAnchor="middle" fill="#22c55e" fontSize="10" className="animate-pulse">
-            IN
-          </text>
-          <text x="775" y="160" textAnchor="middle" fill="#22c55e" fontSize="10" className="animate-pulse">
-            PEACE
-          </text>
-
-          <path d="M950 160 L950 115 Q950 100 970 100 Q990 100 990 115 L990 160" fill="#1a1a2e" />
-
-          {/* Dead trees */}
-          <path
-            d="M50 160 L55 80 L40 100 L55 95 L35 70 L55 85 L45 50 L60 75 L70 45 L65 80 L80 60 L60 90 L75 95 L55 100 L65 160"
-            fill="#0d0d0d"
-          />
-          <path
-            d="M1100 160 L1105 90 L1090 105 L1105 100 L1085 75 L1105 88 L1095 55 L1110 78 L1120 50 L1115 85 L1130 65 L1110 95 L1125 100 L1105 105 L1115 160"
-            fill="#0d0d0d"
-          />
-        </svg>
-      </div>
-
-      {/* Mystical particles */}
-      <div className="absolute inset-0">
-        {Array.from({ length: 80 }).map((_, i) => (
+      {/* CRT scanline overlay */}
+      {(phase === "awakening" || phase === "corruption") && (
+        <>
           <div
-            key={i}
-            className="absolute rounded-full"
-            style={{
-              width: `${2 + Math.random() * 4}px`,
-              height: `${2 + Math.random() * 4}px`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              background: i % 3 === 0 ? "#22c55e" : i % 3 === 1 ? "#a855f7" : "#f97316",
-              animation: `particle-rise ${5 + Math.random() * 5}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 3}s`,
-              opacity: 0.6,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Lightning strikes */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-[15%] w-1 h-[70%] bg-gradient-to-b from-purple-400 via-purple-600 to-transparent animate-lightning opacity-0" />
-        <div
-          className="absolute top-0 left-[35%] w-0.5 h-[60%] bg-gradient-to-b from-green-400 via-green-600 to-transparent animate-lightning opacity-0"
-          style={{ animationDelay: "2s" }}
-        />
-        <div
-          className="absolute top-0 right-[25%] w-1 h-[65%] bg-gradient-to-b from-orange-400 via-red-600 to-transparent animate-lightning opacity-0"
-          style={{ animationDelay: "4s" }}
-        />
-        <div
-          className="absolute top-0 right-[40%] w-0.5 h-[55%] bg-gradient-to-b from-purple-300 via-purple-500 to-transparent animate-lightning opacity-0"
-          style={{ animationDelay: "6s" }}
-        />
-      </div>
-
-      {/* Floating spirits/ghosts */}
-      {Array.from({ length: 8 }).map((_, i) => (
-        <div
-          key={i}
-          className="absolute opacity-20"
-          style={{
-            left: `${10 + i * 12}%`,
-            top: `${20 + (i % 3) * 20}%`,
-            animation: `ghost-drift ${6 + i * 0.5}s ease-in-out infinite`,
-            animationDelay: `${i * 0.7}s`,
-          }}
-        >
-          <svg viewBox="0 0 40 50" className="w-8 h-10">
-            <path
-              d="M20 5 Q35 5 35 25 L35 40 Q32 38 30 42 Q28 38 25 42 Q22 38 20 42 Q18 38 15 42 Q12 38 10 42 Q8 38 5 40 L5 25 Q5 5 20 5"
-              fill={i % 2 === 0 ? "#22c55e" : "#a855f7"}
-              opacity="0.5"
-            />
-            <circle cx="14" cy="20" r="3" fill="#000" />
-            <circle cx="26" cy="20" r="3" fill="#000" />
-            <ellipse cx="20" cy="30" rx="4" ry="3" fill="#000" opacity="0.5" />
-          </svg>
-        </div>
-      ))}
-
-      {/* Main summoning circle */}
-      <div className="relative z-20">
-        {/* Outer mystical ring */}
-        <div className="absolute -inset-48 animate-spin-slow">
-          <svg viewBox="0 0 500 500" className="w-full h-full">
-            <defs>
-              <linearGradient id="runeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#22c55e" />
-                <stop offset="50%" stopColor="#a855f7" />
-                <stop offset="100%" stopColor="#22c55e" />
-              </linearGradient>
-            </defs>
-            <circle
-              cx="250"
-              cy="250"
-              r="230"
-              fill="none"
-              stroke="url(#runeGradient)"
-              strokeWidth="2"
-              strokeDasharray="30 15 10 15"
-              opacity="0.6"
-            />
-            {/* Rune symbols around circle */}
-            {Array.from({ length: 12 }).map((_, i) => (
-              <text
-                key={i}
-                x="250"
-                y="30"
-                textAnchor="middle"
-                fill="#22c55e"
-                fontSize="20"
-                transform={`rotate(${i * 30} 250 250)`}
-                opacity="0.7"
-                className="animate-pulse"
-                style={{ animationDelay: `${i * 0.2}s` }}
-              >
-                {["☠", "⚰", "🕯", "🦇", "👻", "🎃", "🕸", "💀", "⚗", "🔮", "✨", "🌙"][i]}
-              </text>
-            ))}
-          </svg>
-        </div>
-
-        {/* Middle pentagram ring */}
-        <div className="absolute -inset-36 animate-spin-reverse">
-          <svg viewBox="0 0 400 400" className="w-full h-full">
-            <circle
-              cx="200"
-              cy="200"
-              r="170"
-              fill="none"
-              stroke="#a855f7"
-              strokeWidth="1.5"
-              strokeDasharray="10 20 30 10"
-              opacity="0.5"
-            />
-            {/* Pentagram */}
-            <path
-              d="M200 40 L245 150 L360 150 L270 215 L305 340 L200 270 L95 340 L130 215 L40 150 L155 150 Z"
-              fill="none"
-              stroke="#f97316"
-              strokeWidth="1"
-              opacity="0.4"
-            />
-          </svg>
-        </div>
-
-        {/* Inner energy ring */}
-        <div className="absolute -inset-24">
-          <div
-            className="w-full h-full rounded-full animate-pulse-glow"
+            className="absolute inset-0 pointer-events-none z-40 opacity-30"
             style={{
               background:
-                phase === "portal"
-                  ? "radial-gradient(circle, rgba(249,115,22,0.4) 0%, rgba(168,85,247,0.2) 50%, transparent 70%)"
-                  : phase === "rising"
-                    ? "radial-gradient(circle, rgba(168,85,247,0.4) 0%, rgba(34,197,94,0.2) 50%, transparent 70%)"
-                    : "radial-gradient(circle, rgba(34,197,94,0.4) 0%, rgba(168,85,247,0.2) 50%, transparent 70%)",
+                "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px)",
             }}
           />
-        </div>
-
-        {/* Center content */}
-        <div className="relative z-10 text-center">
-          {/* Animated skull with effects */}
           <div
-            className={`mb-8 transition-all duration-1000 ${phase === "rising" || phase === "portal" ? "animate-necro-rise" : ""}`}
-          >
-            <div className="relative">
-              {/* Glow behind skull */}
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              boxShadow: "inset 0 0 150px rgba(34,197,94,0.1)",
+              borderRadius: "20px",
+            }}
+          />
+        </>
+      )}
+
+      {/* Phase 1: Awakening - Old Terminal Boot */}
+      {phase === "awakening" && (
+        <div className="relative z-10 max-w-2xl w-full px-8">
+          {/* Old CRT Monitor Frame */}
+          <div className="relative bg-gradient-to-b from-gray-700 to-gray-800 rounded-3xl p-4 shadow-2xl">
+            <div className="absolute top-2 left-4 flex gap-2">
+              <div className="w-2 h-2 rounded-full bg-red-500/50"></div>
+              <div className="w-2 h-2 rounded-full bg-yellow-500/50"></div>
+              <div className="w-2 h-2 rounded-full bg-green-500/50"></div>
+            </div>
+            <div
+              className="bg-gray-900 rounded-xl p-6 font-mono text-sm overflow-hidden"
+              style={{ minHeight: "200px" }}
+            >
+              {bootMessages.slice(0, textIndex + 1).map((msg, i) => (
+                <div
+                  key={i}
+                  className={`mb-1 ${
+                    msg.includes("ERROR") || msg.includes("CRITICAL")
+                      ? "text-red-500"
+                      : msg.includes("WARNING")
+                        ? "text-yellow-500"
+                        : msg.includes("necromancer")
+                          ? "text-purple-400 animate-pulse"
+                          : "text-green-500"
+                  }`}
+                  style={{ animation: "emerge 0.3s ease-out" }}
+                >
+                  {msg}
+                </div>
+              ))}
+              <span className="inline-block w-2 h-4 bg-green-500 animate-pulse ml-1">_</span>
+            </div>
+            {/* Monitor stand */}
+            <div className="mx-auto mt-2 w-24 h-3 bg-gradient-to-b from-gray-600 to-gray-700 rounded-b-lg"></div>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 2: Corruption - Glitching Old Tech */}
+      {phase === "corruption" && (
+        <div className="relative z-10 flex flex-col items-center">
+          {/* Glitching devices */}
+          <div className="flex items-center gap-8 mb-8">
+            {/* Old Desktop PC */}
+            <div className="animate-glitch-shake">
+              <svg viewBox="0 0 80 100" className="w-20 h-24 opacity-80">
+                <rect x="10" y="5" width="60" height="70" rx="3" fill="#2a2a2a" stroke="#444" strokeWidth="2" />
+                <rect x="18" y="12" width="44" height="8" fill="#111" />
+                <circle cx="25" cy="30" r="4" fill="#dc2626" className="animate-pulse" />
+                <circle
+                  cx="38"
+                  cy="30"
+                  r="4"
+                  fill="#f59e0b"
+                  className="animate-pulse"
+                  style={{ animationDelay: "0.2s" }}
+                />
+                <rect x="18" y="42" width="44" height="4" fill="#333" />
+                <rect x="18" y="50" width="44" height="4" fill="#333" />
+                <rect x="18" y="58" width="44" height="4" fill="#333" />
+                <rect x="25" y="80" width="30" height="15" fill="#333" />
+              </svg>
+            </div>
+
+            {/* Old CRT Monitor with static */}
+            <div className="animate-glitch-shake" style={{ animationDelay: "0.1s" }}>
+              <svg viewBox="0 0 120 100" className="w-28 h-24 opacity-80">
+                <rect x="10" y="8" width="100" height="70" rx="8" fill="#2a2a2a" stroke="#555" strokeWidth="3" />
+                <rect x="20" y="16" width="80" height="54" fill="#111" />
+                {/* Static noise */}
+                {Array.from({ length: 20 }).map((_, i) => (
+                  <rect
+                    key={i}
+                    x={20 + Math.random() * 75}
+                    y={16 + Math.random() * 50}
+                    width={Math.random() * 10 + 2}
+                    height="2"
+                    fill={i % 2 === 0 ? "#22c55e" : "#dc2626"}
+                    opacity={0.6}
+                  />
+                ))}
+                <text x="60" y="48" textAnchor="middle" fill="#dc2626" fontSize="10" className="animate-pulse">
+                  FATAL ERROR
+                </text>
+                <rect x="45" y="78" width="30" height="18" fill="#333" />
+              </svg>
+            </div>
+
+            {/* Floppy Disk */}
+            <div className="animate-glitch-shake" style={{ animationDelay: "0.2s" }}>
+              <svg viewBox="0 0 70 70" className="w-16 h-16 opacity-80">
+                <rect x="5" y="5" width="60" height="60" rx="3" fill="#1f1f1f" stroke="#444" strokeWidth="2" />
+                <rect x="15" y="5" width="30" height="18" fill="#555" />
+                <rect x="20" y="8" width="20" height="12" fill="#777" />
+                <rect x="12" y="45" width="46" height="18" fill="#ddd" />
+                <text x="35" y="56" textAnchor="middle" fill="#333" fontSize="6">
+                  SYSTEM.BAK
+                </text>
+                <text x="35" y="64" textAnchor="middle" fill="#666" fontSize="5">
+                  CORRUPTED
+                </text>
+              </svg>
+            </div>
+          </div>
+
+          {/* Glitch overlay text */}
+          <div className="relative">
+            <span className="text-3xl font-bold text-red-500 animate-pulse">SYSTEM FAILURE</span>
+            <div
+              className="absolute inset-0 text-3xl font-bold text-cyan-400 opacity-50"
+              style={{ transform: "translate(2px, -2px)", mixBlendMode: "screen" }}
+            >
+              SYSTEM FAILURE
+            </div>
+          </div>
+
+          {/* Corruption particles */}
+          {Array.from({ length: 30 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute rounded-sm"
+              style={{
+                width: `${4 + Math.random() * 8}px`,
+                height: `${2 + Math.random() * 4}px`,
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                background: i % 3 === 0 ? "#dc2626" : i % 3 === 1 ? "#22c55e" : "#3b82f6",
+                opacity: 0.4,
+                animation: `glitch-shake 0.2s ease infinite`,
+                animationDelay: `${Math.random() * 0.3}s`,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Phase 3: Resurrection Magic */}
+      {phase === "resurrection" && (
+        <div className="relative z-10 text-center">
+          {/* Magic particles rising */}
+          <div className="absolute inset-0 overflow-hidden">
+            {Array.from({ length: 50 }).map((_, i) => (
               <div
-                className="absolute inset-0 blur-2xl animate-pulse"
+                key={i}
+                className="absolute rounded-full"
                 style={{
-                  background:
-                    phase === "portal"
-                      ? "radial-gradient(circle, #f97316 0%, transparent 70%)"
-                      : "radial-gradient(circle, #22c55e 0%, transparent 70%)",
+                  width: `${3 + Math.random() * 6}px`,
+                  height: `${3 + Math.random() * 6}px`,
+                  left: `${Math.random() * 100}%`,
+                  bottom: "-10%",
+                  background: i % 3 === 0 ? "#22c55e" : i % 3 === 1 ? "#a855f7" : "#f97316",
+                  animation: `particle-rise ${1.5 + Math.random() * 1}s ease-out forwards`,
+                  animationDelay: `${Math.random() * 0.5}s`,
                 }}
               />
-
-              {/* Main skull SVG */}
-              <svg viewBox="0 0 100 120" className="w-32 h-40 mx-auto relative z-10">
-                <defs>
-                  <linearGradient id="skullGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#f0f0f0" />
-                    <stop offset="100%" stopColor="#a0a0a0" />
-                  </linearGradient>
-                  <filter id="glow">
-                    <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                    <feMerge>
-                      <feMergeNode in="coloredBlur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                </defs>
-
-                {/* Skull shape */}
-                <ellipse cx="50" cy="45" rx="40" ry="42" fill="url(#skullGradient)" />
-
-                {/* Eye sockets with glow */}
-                <ellipse cx="32" cy="40" rx="12" ry="14" fill="#0a0a0a" />
-                <ellipse cx="68" cy="40" rx="12" ry="14" fill="#0a0a0a" />
-
-                {/* Glowing eyes */}
-                <ellipse
-                  cx="32"
-                  cy="40"
-                  rx="6"
-                  ry="7"
-                  fill={phase === "portal" ? "#f97316" : "#22c55e"}
-                  filter="url(#glow)"
-                  className="animate-pulse"
-                />
-                <ellipse
-                  cx="68"
-                  cy="40"
-                  rx="6"
-                  ry="7"
-                  fill={phase === "portal" ? "#f97316" : "#22c55e"}
-                  filter="url(#glow)"
-                  className="animate-pulse"
-                />
-
-                {/* Nose */}
-                <path d="M45 55 L50 70 L55 55" fill="#1a1a1a" />
-
-                {/* Teeth */}
-                <rect x="30" y="75" width="8" height="12" rx="1" fill="#e0e0e0" />
-                <rect x="40" y="75" width="8" height="14" rx="1" fill="#e0e0e0" />
-                <rect x="50" y="75" width="8" height="14" rx="1" fill="#e0e0e0" />
-                <rect x="60" y="75" width="8" height="12" rx="1" fill="#e0e0e0" />
-
-                {/* Jaw line */}
-                <path d="M20 65 Q25 85 30 90 L70 90 Q75 85 80 65" fill="none" stroke="#888" strokeWidth="2" />
-              </svg>
-
-              {/* Energy channeling effect */}
-              {(phase === "rising" || phase === "portal") && (
-                <div className="absolute inset-0 animate-energy-channel">
-                  <svg viewBox="0 0 100 120" className="w-32 h-40 mx-auto opacity-50 blur-sm">
-                    <ellipse
-                      cx="50"
-                      cy="45"
-                      rx="40"
-                      ry="42"
-                      fill="none"
-                      stroke={phase === "portal" ? "#f97316" : "#22c55e"}
-                      strokeWidth="3"
-                    />
-                  </svg>
-                </div>
-              )}
-            </div>
+            ))}
           </div>
 
-          {/* Title with gradient */}
-          <h1 className="text-5xl font-bold mb-2">
+          {/* Outer magic circle */}
+          <div className="absolute -inset-32 animate-spin-slow opacity-50">
+            <svg viewBox="0 0 400 400" className="w-full h-full">
+              <defs>
+                <linearGradient id="circleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#22c55e" />
+                  <stop offset="50%" stopColor="#a855f7" />
+                  <stop offset="100%" stopColor="#f97316" />
+                </linearGradient>
+              </defs>
+              <circle
+                cx="200"
+                cy="200"
+                r="180"
+                fill="none"
+                stroke="url(#circleGrad)"
+                strokeWidth="2"
+                strokeDasharray="20 10 5 10"
+              />
+              {Array.from({ length: 8 }).map((_, i) => (
+                <text
+                  key={i}
+                  x="200"
+                  y="30"
+                  textAnchor="middle"
+                  fill={i % 2 === 0 ? "#22c55e" : "#a855f7"}
+                  fontSize="18"
+                  transform={`rotate(${i * 45} 200 200)`}
+                  className="animate-pulse"
+                >
+                  {["☠", "⚗", "🔮", "✨", "💀", "🌙", "⭐", "🕯"][i]}
+                </text>
+              ))}
+            </svg>
+          </div>
+
+          {/* Center glow */}
+          <div
+            className="absolute -inset-16 rounded-full animate-pulse-glow"
+            style={{
+              background: "radial-gradient(circle, rgba(34,197,94,0.5) 0%, rgba(168,85,247,0.3) 50%, transparent 70%)",
+            }}
+          />
+
+          {/* Animated skull with resurrection effect */}
+          <div className="relative animate-necro-rise">
+            <svg viewBox="0 0 100 120" className="w-36 h-44 mx-auto">
+              <defs>
+                <linearGradient id="skullResGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#f0f0f0" />
+                  <stop offset="100%" stopColor="#888" />
+                </linearGradient>
+                <filter id="resGlow">
+                  <feGaussianBlur stdDeviation="5" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              {/* Glow aura */}
+              <ellipse
+                cx="50"
+                cy="50"
+                rx="48"
+                ry="48"
+                fill="#22c55e"
+                opacity="0.2"
+                filter="url(#resGlow)"
+                className="animate-pulse"
+              />
+              {/* Skull */}
+              <ellipse cx="50" cy="45" rx="38" ry="40" fill="url(#skullResGrad)" />
+              <ellipse cx="32" cy="40" rx="11" ry="13" fill="#0a0a0a" />
+              <ellipse cx="68" cy="40" rx="11" ry="13" fill="#0a0a0a" />
+              {/* Glowing eyes */}
+              <ellipse cx="32" cy="40" rx="6" ry="7" fill="#22c55e" filter="url(#resGlow)" className="animate-pulse" />
+              <ellipse cx="68" cy="40" rx="6" ry="7" fill="#22c55e" filter="url(#resGlow)" className="animate-pulse" />
+              {/* Nose */}
+              <path d="M45 55 L50 68 L55 55" fill="#1a1a1a" />
+              {/* Teeth */}
+              <rect x="28" y="78" width="9" height="13" rx="1" fill="#e0e0e0" />
+              <rect x="39" y="78" width="9" height="15" rx="1" fill="#e0e0e0" />
+              <rect x="50" y="78" width="9" height="15" rx="1" fill="#e0e0e0" />
+              <rect x="61" y="78" width="9" height="13" rx="1" fill="#e0e0e0" />
+            </svg>
+          </div>
+
+          {/* Title reveal */}
+          <h1 className="text-4xl md:text-5xl font-bold mt-6 animate-emerge">
             <span
               className="bg-clip-text text-transparent"
-              style={{
-                backgroundImage: "linear-gradient(135deg, #22c55e 0%, #a855f7 50%, #f97316 100%)",
-              }}
+              style={{ backgroundImage: "linear-gradient(135deg, #22c55e 0%, #4ade80 100%)" }}
             >
-              Legacy
+              Legacy UX
+            </span>{" "}
+            <span
+              className="bg-clip-text text-transparent"
+              style={{ backgroundImage: "linear-gradient(135deg, #a855f7 0%, #f97316 100%)" }}
+            >
+              Reviver
             </span>
-            <span className="text-white"> Resurrector</span>
           </h1>
-
-          {/* Subtitle */}
-          <p className="text-gray-400 text-lg mb-8 font-medium tracking-wide">Necromancer of Dead APIs</p>
-
-          {/* Phase text */}
-          <p className="text-gray-300 mb-6 h-6 text-lg font-medium">
-            {phase === "summoning" && <span className="text-green-400">Channeling ancient code spirits...</span>}
-            {phase === "rising" && <span className="text-purple-400">The dead APIs are rising...</span>}
-            {phase === "portal" && <span className="text-orange-400">Opening the resurrection portal...</span>}
-            {phase === "complete" && <span className="text-green-300">Resurrection complete!</span>}
+          <p className="text-gray-400 text-lg mt-3 animate-emerge" style={{ animationDelay: "0.2s" }}>
+            Breathing new life into dead APIs
           </p>
-
-          {/* Progress bar with glow */}
-          <div className="w-80 mx-auto">
-            <div className="h-3 bg-slate-900/80 rounded-full overflow-hidden border border-slate-700 relative">
-              <div
-                className="h-full transition-all duration-300 rounded-full relative overflow-hidden"
-                style={{
-                  width: `${progress}%`,
-                  background:
-                    progress > 75
-                      ? "linear-gradient(90deg, #22c55e, #a855f7, #f97316)"
-                      : progress > 40
-                        ? "linear-gradient(90deg, #22c55e, #a855f7)"
-                        : "linear-gradient(90deg, #166534, #22c55e, #4ade80)",
-                }}
-              >
-                {/* Shimmer effect */}
-                <div
-                  className="absolute inset-0 animate-shimmer"
-                  style={{
-                    background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)",
-                  }}
-                />
-              </div>
-            </div>
-            <p className="text-sm mt-3 font-mono">
-              <span
-                className={progress > 75 ? "text-orange-400" : progress > 40 ? "text-purple-400" : "text-green-400"}
-              >
-                {progress}%
-              </span>
-              <span className="text-gray-500 ml-2">
-                {phase === "summoning" && "Summoning"}
-                {phase === "rising" && "Resurrecting"}
-                {phase === "portal" && "Manifesting"}
-                {phase === "complete" && "Complete"}
-              </span>
-            </p>
-          </div>
         </div>
-      </div>
-
-      {/* Ground fog */}
-      <div className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none z-10">
-        <div className="absolute inset-0 bg-gradient-to-t from-green-950/40 via-purple-950/20 to-transparent" />
-        <div
-          className="absolute bottom-0 left-0 w-[200%] h-20 animate-fog-drift"
-          style={{
-            background:
-              "linear-gradient(90deg, transparent, rgba(34,197,94,0.15), transparent, rgba(168,85,247,0.15), transparent)",
-          }}
-        />
-      </div>
+      )}
     </div>
   )
 }
