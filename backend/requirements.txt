@@ -1,0 +1,33 @@
+# FastAPI and web framework
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+
+# HTTP client
+httpx
+
+# OpenAPI and YAML parsing
+pyyaml
+openapi-spec-validator
+openapi3-parser
+
+# LLM integration
+openai
+anthropic
+
+# Type inference utilities
+python-dateutil
+phonenumbers
+
+# Testing
+pytest
+pytest-asyncio
+hypothesis
+
+# Type checking and linting
+mypy
+ruff
+
+# Development
+python-dotenv

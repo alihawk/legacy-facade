@@ -276,6 +276,7 @@ export default function AnalyzerPage() {
           get: {
             responses: {
               "200": {
+                description: "List of users",
                 content: {
                   "application/json": {
                     schema: {
@@ -324,6 +325,7 @@ export default function AnalyzerPage() {
           get: {
             responses: {
               "200": {
+                description: "List of activity logs",
                 content: {
                   "application/json": {
                     schema: {
@@ -372,6 +374,7 @@ export default function AnalyzerPage() {
           get: {
             responses: {
               "200": {
+                description: "List of products",
                 content: {
                   "application/json": {
                     schema: {
