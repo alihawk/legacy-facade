@@ -7,6 +7,8 @@ import Dashboard from "@/components/Dashboard"
 import ResourceList from "@/components/ResourceList"
 import ResourceDetail from "@/components/ResourceDetail"
 import ResourceForm from "@/components/ResourceForm"
+import ResourceActivity from "@/components/ResourceActivity"
+import ResourceSettings from "@/components/ResourceSettings"
 
 interface ResourceSchema {
   name: string
@@ -52,6 +54,8 @@ export default function PortalPage() {
           <Routes>
             <Route index element={<Dashboard resources={resources} />} />
             <Route path=":resourceName" element={<ResourceListWrapper resources={resources} />} />
+            <Route path=":resourceName/activity" element={<ResourceActivityWrapper resources={resources} />} />
+            <Route path=":resourceName/settings" element={<ResourceSettingsWrapper resources={resources} />} />
             <Route path=":resourceName/new" element={<ResourceFormWrapper resources={resources} mode="create" />} />
             <Route path=":resourceName/:id" element={<ResourceDetailWrapper resources={resources} />} />
             <Route path=":resourceName/:id/edit" element={<ResourceFormWrapper resources={resources} mode="edit" />} />
@@ -68,6 +72,20 @@ function ResourceListWrapper({ resources }: { resources: ResourceSchema[] }) {
   const resource = resources.find((r) => r.name === resourceName)
   if (!resource) return <div className="text-gray-600">Resource not found</div>
   return <ResourceList resource={resource} />
+}
+
+function ResourceActivityWrapper({ resources }: { resources: ResourceSchema[] }) {
+  const { resourceName } = useParams()
+  const resource = resources.find((r) => r.name === resourceName)
+  if (!resource) return <div className="text-gray-600">Resource not found</div>
+  return <ResourceActivity resource={resource} />
+}
+
+function ResourceSettingsWrapper({ resources }: { resources: ResourceSchema[] }) {
+  const { resourceName } = useParams()
+  const resource = resources.find((r) => r.name === resourceName)
+  if (!resource) return <div className="text-gray-600">Resource not found</div>
+  return <ResourceSettings resource={resource} />
 }
 
 function ResourceDetailWrapper({ resources }: { resources: ResourceSchema[] }) {

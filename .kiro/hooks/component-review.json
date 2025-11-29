@@ -1,0 +1,13 @@
+{
+  "name": "Component Review",
+  "description": "Review new components for best practices and accessibility",
+  "trigger": {
+    "type": "onFileSave",
+    "filePattern": "frontend/src/components/**/*.tsx"
+  },
+  "action": {
+    "type": "message",
+    "message": "Review this component for:\n1. TypeScript type safety (no 'any' types)\n2. Accessibility (ARIA labels, semantic HTML)\n3. Component size (under 200 lines)\n4. Proper hook dependencies\n5. Tailwind CSS usage\n\nProvide brief feedback only if issues are found."
+  },
+  "enabled": false
+}

@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Search, Eye, Plus, ChevronLeft, ChevronRight, Filter, Sparkles } from "lucide-react"
+import { Search, Eye, Plus, ChevronLeft, ChevronRight, Filter, Sparkles, ArrowUpDown, ArrowUp, ArrowDown, History, Settings } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import axios from "axios"
 import { LoadingSpinner, EmptyState } from "./LoadingState"
+import { getUIConfig } from "./ResourceSettings"
 
 interface ResourceListProps {
   resource: any
@@ -20,6 +21,8 @@ export default function ResourceList({ resource }: ResourceListProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(20)
+  const [sortField, setSortField] = useState<string | null>(null)
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -69,7 +72,31 @@ export default function ResourceList({ resource }: ResourceListProps) {
     })
   }
 
-  const visibleFields = resource.fields.filter((f: any) => f.name !== resource.primaryKey).slice(0, 5)
+  // Get UI config from localStorage
+  const uiConfig = getUIConfig(resource.name)
+
+  // Apply UI config to visible fields
+  const visibleFields = resource.fields
+    .filter((f: any) => {
+      if (f.name === resource.primaryKey) return false
+      if (!uiConfig) return true
+      return uiConfig.fieldSettings[f.name]?.visibleInList ?? true
+    })
+    .slice(0, 5)
+
+  // Helper to get display label
+  const getDisplayLabel = (field: any): string => {
+    return uiConfig?.fieldSettings[field.name]?.displayLabel || field.displayName
+  }
+
+  const handleSort = (fieldName: string) => {
+    if (sortField === fieldName) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(fieldName)
+      setSortDirection('asc')
+    }
+  }
 
   const filteredData = data.filter((item) => {
     if (!searchTerm) return true
@@ -79,11 +106,35 @@ export default function ResourceList({ resource }: ResourceListProps) {
     })
   })
 
-  const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage))
+  const sortedData = sortField
+    ? [...filteredData].sort((a, b) => {
+        const aVal = a[sortField]
+        const bVal = b[sortField]
+        
+        // Handle null/undefined
+        if (aVal == null && bVal == null) return 0
+        if (aVal == null) return 1
+        if (bVal == null) return -1
+        
+        // Compare values
+        let comparison = 0
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
+          comparison = aVal - bVal
+        } else if (typeof aVal === 'boolean' && typeof bVal === 'boolean') {
+          comparison = aVal === bVal ? 0 : aVal ? 1 : -1
+        } else {
+          comparison = String(aVal).localeCompare(String(bVal))
+        }
+        
+        return sortDirection === 'asc' ? comparison : -comparison
+      })
+    : filteredData
+
+  const totalPages = Math.max(1, Math.ceil(sortedData.length / itemsPerPage))
   const currentSafePage = Math.min(currentPage, totalPages)
   const startIndex = (currentSafePage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const paginatedData = filteredData.slice(startIndex, endIndex)
+  const paginatedData = sortedData.slice(startIndex, endIndex)
 
   useEffect(() => {
     setCurrentPage(1)
@@ -129,13 +180,31 @@ export default function ResourceList({ resource }: ResourceListProps) {
           </div>
           <p className="text-gray-500 mt-2 ml-12">Manage and view all {resource.displayName.toLowerCase()}</p>
         </div>
-        <Button
-          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl transition-all"
-          onClick={() => navigate(`/portal/${resource.name}/new`)}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add {resource.displayName.slice(0, -1)}
-        </Button>
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => navigate(`/portal/${resource.name}/settings`)}
+            className="border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Settings
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate(`/portal/${resource.name}/activity`)}
+            className="border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl"
+          >
+            <History className="w-4 h-4 mr-2" />
+            Activity Log
+          </Button>
+          <Button
+            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl transition-all"
+            onClick={() => navigate(`/portal/${resource.name}/new`)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add {resource.displayName.slice(0, -1)}
+          </Button>
+        </div>
       </div>
 
       {/* Search & Filter Bar - Enhanced */}
@@ -168,10 +237,41 @@ export default function ResourceList({ resource }: ResourceListProps) {
         <Table>
           <TableHeader>
             <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-gray-100">
-              <TableHead className="text-gray-600 font-semibold w-20 py-4">ID</TableHead>
+              <TableHead 
+                className="text-gray-600 font-semibold w-20 py-4 cursor-pointer hover:text-indigo-600 transition-colors select-none"
+                onClick={() => handleSort(resource.primaryKey)}
+              >
+                <div className="flex items-center gap-2">
+                  ID
+                  {sortField === resource.primaryKey ? (
+                    sortDirection === 'asc' ? (
+                      <ArrowUp className="w-4 h-4 text-indigo-600" />
+                    ) : (
+                      <ArrowDown className="w-4 h-4 text-indigo-600" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="w-4 h-4 opacity-30" />
+                  )}
+                </div>
+              </TableHead>
               {visibleFields.map((field: any) => (
-                <TableHead key={field.name} className="text-gray-600 font-semibold py-4">
-                  {field.displayName}
+                <TableHead 
+                  key={field.name} 
+                  className="text-gray-600 font-semibold py-4 cursor-pointer hover:text-indigo-600 transition-colors select-none"
+                  onClick={() => handleSort(field.name)}
+                >
+                  <div className="flex items-center gap-2">
+                    {getDisplayLabel(field)}
+                    {sortField === field.name ? (
+                      sortDirection === 'asc' ? (
+                        <ArrowUp className="w-4 h-4 text-indigo-600" />
+                      ) : (
+                        <ArrowDown className="w-4 h-4 text-indigo-600" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-30" />
+                    )}
+                  </div>
                 </TableHead>
               ))}
               <TableHead className="text-gray-600 font-semibold text-right w-24 py-4">Actions</TableHead>
@@ -243,9 +343,9 @@ export default function ResourceList({ resource }: ResourceListProps) {
       {/* Pagination Footer - Enhanced */}
       <div className="flex items-center justify-between bg-white border-0 rounded-2xl px-5 py-4 shadow-lg shadow-gray-200/50">
         <div className="text-sm text-gray-500">
-          Showing <span className="font-semibold text-gray-900">{filteredData.length === 0 ? 0 : startIndex + 1}</span>{" "}
-          - <span className="font-semibold text-gray-900">{Math.min(endIndex, filteredData.length)}</span> of{" "}
-          <span className="font-semibold text-gray-900">{filteredData.length}</span>{" "}
+          Showing <span className="font-semibold text-gray-900">{sortedData.length === 0 ? 0 : startIndex + 1}</span>{" "}
+          - <span className="font-semibold text-gray-900">{Math.min(endIndex, sortedData.length)}</span> of{" "}
+          <span className="font-semibold text-gray-900">{sortedData.length}</span>{" "}
           {resource.displayName.toLowerCase()}
         </div>
         <div className="flex items-center gap-2">

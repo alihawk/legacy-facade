@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "vercel-deploy": {
+      "command": "npx",
+      "args": ["vercel", "--prod", "--yes"],
+      "env": {
+        "VERCEL_TOKEN": "${VERCEL_TOKEN}"
+      },
+      "disabled": false,
+      "description": "Deploy frontend to Vercel"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "Spec Progress Check",
+  "description": "Check progress on current spec implementation",
+  "trigger": {
+    "type": "manual",
+    "label": "Check Spec Progress"
+  },
+  "action": {
+    "type": "message",
+    "message": "Review the current spec tasks in .kiro/specs/ and provide a brief status update on completed and remaining tasks."
+  },
+  "enabled": true
+}

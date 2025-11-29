@@ -315,6 +315,105 @@ export default function AnalyzerPage() {
     setSpecFileName("")
   }
 
+  const loadActivityExample = () => {
+    const activitySpec = {
+      openapi: "3.0.0",
+      info: { title: "Activity Log API", version: "1.0.0" },
+      paths: {
+        "/api/v1/activity": {
+          get: {
+            responses: {
+              "200": {
+                content: {
+                  "application/json": {
+                    schema: {
+                      type: "object",
+                      properties: {
+                        Data: {
+                          type: "object",
+                          properties: {
+                            Activity: {
+                              type: "array",
+                              items: {
+                                type: "object",
+                                properties: {
+                                  activity_id: { type: "integer" },
+                                  timestamp: { type: "string" },
+                                  action: { type: "string" },
+                                  user: { type: "string" },
+                                  resource_id: { type: "integer" },
+                                  details: { type: "string" },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    }
+    setSpecJson(JSON.stringify(activitySpec, null, 2))
+    setSpecUrl("")
+    setSpecFileName("")
+  }
+
+  const loadProductsExample = () => {
+    const productsSpec = {
+      openapi: "3.0.0",
+      info: { title: "Product Catalog API", version: "1.0.0" },
+      paths: {
+        "/api/v1/products": {
+          get: {
+            responses: {
+              "200": {
+                content: {
+                  "application/json": {
+                    schema: {
+                      type: "object",
+                      properties: {
+                        Data: {
+                          type: "object",
+                          properties: {
+                            Products: {
+                              type: "array",
+                              items: {
+                                type: "object",
+                                properties: {
+                                  product_id: { type: "integer" },
+                                  sku_code: { type: "string" },
+                                  product_name: { type: "string" },
+                                  category_id: { type: "integer" },
+                                  unit_price: { type: "number" },
+                                  stock_quantity: { type: "integer" },
+                                  is_available: { type: "boolean" },
+                                  created_date: { type: "string" },
+                                  last_updated: { type: "string" },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    }
+    setSpecJson(JSON.stringify(productsSpec, null, 2))
+    setSpecUrl("")
+    setSpecFileName("")
+  }
+
   const loadEndpointExample = () => {
     setBaseUrl("https://api.example.com")
     setEndpointPath("/api/v1/users")
@@ -508,14 +607,32 @@ export default function AnalyzerPage() {
                   </div>
 
                   <div className="flex justify-between items-center">
-                    <Button
-                      variant="outline"
-                      onClick={loadExample}
-                      className="border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-green-500/50 transition-all duration-300 bg-transparent"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      Load Example Spec
-                    </Button>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        variant="outline"
+                        onClick={loadExample}
+                        className="border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-green-500/50 transition-all duration-300 bg-transparent"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        HR Example
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={loadActivityExample}
+                        className="border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-amber-500/50 transition-all duration-300 bg-transparent"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Activity Log
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={loadProductsExample}
+                        className="border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-violet-500/50 transition-all duration-300 bg-transparent"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Products
+                      </Button>
+                    </div>
                     <div className="text-sm text-gray-500 font-mono">{specJson.length} characters</div>
                   </div>
                 </div>
