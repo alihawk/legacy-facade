@@ -15,7 +15,8 @@ backend/
 ├── app/
 │   ├── main.py                    # FastAPI application entry point with CORS
 │   ├── api/
-│   │   └── analyze.py             # POST /api/analyze endpoint
+│   │   ├── analyze.py             # POST /api/analyze endpoint
+│   │   └── clean_names.py         # POST /api/clean-names endpoint (optional LLM enhancement)
 │   ├── services/
 │   │   ├── openapi_analyzer.py    # OpenAPI spec parsing (modes: openapi, openapi_url)
 │   │   ├── endpoint_analyzer.py   # Live endpoint introspection (mode: endpoint)
@@ -56,24 +57,47 @@ backend/
 5. **Schema Extraction** → Analyzer extracts raw resource data (fields, endpoints, operations)
 6. **Response Unwrapping** → Unwrap nested structures like `{Data: {Users: [...]}}`
 7. **Type Inference** → Determine field types (string/number/boolean/date/email/text)
-8. **Primary Key Detection** → Apply heuristics (id, _id, {resource}_id, {resource}Id)
-9. **LLM Name Conversion** → Batch convert field/resource names to human-readable display names using LLM
+8. **Primary Key Detection** → Apply regex-based heuristics with word boundaries; use LLM only if ambiguous
+9. **Simple Name Conversion** → Convert field/resource names using simple rules (replace underscores, Title Case)
 10. **Schema Normalization** → Convert to ResourceSchema format
 11. **Response** → Return `{"resources": [ResourceSchema, ...]}`
 
+### Optional Enhancement Flow (POST /api/clean-names)
+
+1. **Client Request** → `POST /api/clean-names` with `{"resources": [...]}`
+2. **Extract Field Names** → Collect all field and resource names from input
+3. **Batch LLM Conversion** → Send names to LLM in batches of 50 for intelligent cleaning
+4. **Update Display Names** → Replace display names in ResourceSchema objects
+5. **Response** → Return updated `{"resources": [ResourceSchema, ...]}`
+
 ## Components and Interfaces
 
-### LLM-Based Display Name Generation
+### Simple Display Name Generation (Default)
 
-**Why LLM Instead of Rules:**
-Legacy APIs have unpredictable naming conventions that simple regex patterns can't handle:
+**Default Behavior:**
+The `/api/analyze` endpoint uses simple, fast transformation rules:
+- Replace underscores and hyphens with spaces
+- Insert spaces before capital letters (camelCase → camel Case)
+- Apply Title Case to all words
+- No external API calls required
+
+**Examples:**
+- `user_name` → "User Name"
+- `getUserData` → "Get User Data"
+- `email-address` → "Email Address"
+- `createdAt` → "Created At"
+
+### LLM-Based Display Name Cleaning (Optional Enhancement)
+
+**Why LLM for Optional Cleaning:**
+Legacy APIs have unpredictable naming conventions that simple rules can't handle:
 - Abbreviations: `usr_prof`, `dt_created`, `addr_ln_1`
 - Prefixes/Suffixes: `fld_email`, `tbl_users`, `_v2`, `_new`
 - Mixed formats: `camelCase_with_snake`, `PascalCase_ID`
 - Numbers: `email_1`, `phone_2`, `user_id_3`
 - Symbols: `user$name`, `email@address`, `id#123`
 
-**LLM Prompt Strategy:**
+**LLM Prompt Strategy (for /api/clean-names):**
 ```
 You are converting database field names to human-readable display names.
 
@@ -100,12 +124,13 @@ Convert these field names:
 - Collect all field names from all resources
 - Send in batches of 50 to LLM
 - Parse JSON response with field name mappings
-- Cache results in-memory for duration of request
-- Fallback to simple Title Case if LLM fails
+- Return updated ResourceSchema array
 
 ### API Endpoint
 
 #### POST /api/analyze
+
+**Purpose:** Analyze API specifications and return normalized resource schemas with simple display name transformation.
 
 **Request Body (AnalyzeRequest):**
 ```json
@@ -198,6 +223,71 @@ Convert these field names:
 }
 ```
 
+#### POST /api/clean-names (Optional Enhancement)
+
+**Purpose:** Use LLM to intelligently clean field and resource display names in already-analyzed schemas.
+
+**Request Body:**
+```json
+{
+  "resources": [
+    {
+      "name": "users",
+      "displayName": "Users",
+      "endpoint": "/api/v1/users",
+      "primaryKey": "user_id",
+      "fields": [
+        {
+          "name": "usr_prof_id",
+          "type": "number",
+          "displayName": "Usr Prof Id"  // Simple transformation
+        },
+        {
+          "name": "dt_created_ts",
+          "type": "date",
+          "displayName": "Dt Created Ts"  // Simple transformation
+        }
+      ],
+      "operations": ["list", "detail"]
+    }
+  ]
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "resources": [
+    {
+      "name": "users",
+      "displayName": "Users",
+      "endpoint": "/api/v1/users",
+      "primaryKey": "user_id",
+      "fields": [
+        {
+          "name": "usr_prof_id",
+          "type": "number",
+          "displayName": "User Profile ID"  // LLM-cleaned
+        },
+        {
+          "name": "dt_created_ts",
+          "type": "date",
+          "displayName": "Date Created"  // LLM-cleaned
+        }
+      ],
+      "operations": ["list", "detail"]
+    }
+  ]
+}
+```
+
+**Error Response (503):**
+```json
+{
+  "detail": "LLM service unavailable"
+}
+```
+
 ## Data Models
 
 ### ResourceSchema
@@ -247,25 +337,19 @@ class AnalyzeRequest(BaseModel):
 *For any* JSON value, the inferred type should match the value's actual type: number→"number", boolean→"boolean", string matching email pattern→"email", string matching ISO date→"date", string >100 chars→"text", other string→"string".
 **Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5, 5.6**
 
-### Property 4: LLM-Based Display Name Transformation
-*For any* resource or field name (regardless of format, prefixes, suffixes, numbers, or symbols), the LLM-based name converter should generate a human-readable display name that accurately represents the field's purpose (e.g., "usr_prof_v2" → "User Profile", "dt_created_ts" → "Date Created", "fld_email_addr_1" → "Email Address").
+### Property 4: Simple Display Name Transformation
+*For any* resource or field name, the simple name converter should generate a readable display name by replacing underscores/hyphens with spaces, inserting spaces before capitals, and applying Title Case (e.g., "user_name" → "User Name", "getUserData" → "Get User Data").
 **Validates: Requirements 6.3**
 
-**Implementation Note:** Uses an LLM (OpenAI/Anthropic) to intelligently convert field names, handling edge cases like:
-- Abbreviations and acronyms (usr → User, addr → Address, ts → Timestamp)
-- Version suffixes (v2, _v1, _new)
-- Prefixes (fld_, tbl_, col_)
-- Numbers (email_1 → Email, user_id_2 → User ID)
-- Mixed formats (camelCase_with_snake)
-- Special characters and symbols
+**Implementation Note:** Uses simple string transformation rules without external API calls for fast, predictable results.
 
-### Property 5: Primary Key Detection
-*For any* object with a field named "id", "_id", "{resource}_id", or "{resource}Id", that field should be identified as the primary key.
-**Validates: Requirements 10.1, 10.2, 10.3, 10.4**
+### Property 5: Primary Key Pattern Detection
+*For any* object with field names containing primary key patterns (id, key, code, number, uuid, guid, pk, primary_key, no, num, seq, recid, record_id, rowid) using word boundary regex, those fields should be identified as primary key candidates.
+**Validates: Requirements 10.1, 10.2, 10.3, 10.4, 10.5**
 
-### Property 6: Primary Key Default Behavior
-*For any* object without matching primary key patterns, if a field named "id" exists, it should be used as primary key; otherwise primaryKey should default to "id".
-**Validates: Requirements 10.5, 10.6**
+### Property 6: Primary Key Disambiguation
+*For any* object with zero or multiple primary key candidates, the LLM should be used to select the most appropriate primary key; if LLM fails, default to "id".
+**Validates: Requirements 10.6, 10.7, 10.8, 10.9**
 
 ### Property 7: Error Response Validity
 *For any* invalid input (malformed JSON, unreachable URL, invalid spec), the API should return an appropriate HTTP error code (400, 413, 422, 503) with a descriptive error message.
@@ -325,7 +409,7 @@ class AnalyzeRequest(BaseModel):
 - Use **Hypothesis** (Python PBT library) with **100+ iterations** per property
 - Generate random OpenAPI specs and verify parsing completeness (Property 1)
 - Generate random JSON structures and verify type inference (Property 3)
-- Generate random resource names and verify display name transformation (Property 4)
+- Generate random resource names and verify simple display name transformation (Property 4)
 - Generate random objects and verify primary key detection (Properties 5, 6)
 - Test timeout behavior with slow mock servers (Property 11)
 - Test payload size limits with large generated payloads (Property 12)
@@ -364,12 +448,12 @@ ANALYZER_TIMEOUT_SECONDS=30  # HTTP request timeout
 ANALYZER_MAX_PAYLOAD_MB=10   # Max request body size
 ANALYZER_LOG_LEVEL=INFO      # Logging level
 
-# LLM Configuration for display name generation
-LLM_PROVIDER=openai          # "openai" or "anthropic"
-OPENAI_API_KEY=sk-...        # OpenAI API key (if using OpenAI)
-ANTHROPIC_API_KEY=sk-ant-... # Anthropic API key (if using Anthropic)
-LLM_MODEL=gpt-4o-mini        # Model to use (gpt-4o-mini, claude-3-haiku-20240307, etc.)
-LLM_BATCH_SIZE=50            # Number of field names to convert in one LLM call (batch for efficiency)
+# LLM Configuration for optional display name cleaning (/api/clean-names endpoint)
+LLM_PROVIDER=openai          # "openai" or "anthropic" (optional, only needed for /api/clean-names)
+OPENAI_API_KEY=sk-...        # OpenAI API key (optional, only needed for /api/clean-names)
+ANTHROPIC_API_KEY=sk-ant-... # Anthropic API key (optional, only needed for /api/clean-names)
+LLM_MODEL=gpt-4o-mini        # Model to use (optional, only needed for /api/clean-names)
+LLM_BATCH_SIZE=50            # Number of field names to convert in one LLM call
 ```
 
 ### Performance Considerations
@@ -377,8 +461,9 @@ LLM_BATCH_SIZE=50            # Number of field names to convert in one LLM call 
 - Stream large responses instead of loading entirely into memory
 - Limit JSON sample size to prevent memory exhaustion (max 10MB)
 - Timeout for all external requests (30 seconds default)
-- **Batch LLM calls**: Convert multiple field names in a single LLM request (batch size: 50) to reduce latency and cost
-- **Cache LLM results**: Cache display name conversions in-memory to avoid redundant LLM calls for common field names
+- **Simple name conversion by default**: Use fast string transformation rules for display names in /api/analyze
+- **Optional LLM cleaning**: Provide separate /api/clean-names endpoint for intelligent name cleaning when needed
+- **Batch LLM calls**: When using /api/clean-names, convert multiple field names in a single LLM request (batch size: 50)
 - Consider caching parsed OpenAPI specs (optional enhancement)
 
 ### Security Considerations

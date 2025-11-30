@@ -59,6 +59,7 @@ export default function AnalyzerPage() {
   const [error, setError] = useState("")
   const [resources, setResources] = useState<ResourceSchema[]>([])
   const [analyzed, setAnalyzed] = useState(false)
+  const [cleaning, setCleaning] = useState(false)
 
   const navigate = useNavigate()
 
@@ -255,6 +256,27 @@ export default function AnalyzerPage() {
       setSpecUrl("")
     }
     reader.readAsText(file)
+  }
+
+  const handleCleanNames = async () => {
+    setCleaning(true)
+    setError("")
+
+    try {
+      const response = await axios.post("http://localhost:8000/api/clean-names", {
+        resources,
+      })
+      const cleanedResources = response.data.resources as ResourceSchema[]
+      setResources(cleanedResources)
+    } catch (err: any) {
+      console.error("Failed to clean field names:", err)
+      setError(
+        err?.response?.data?.detail ||
+          "Failed to clean field names. LLM service may be unavailable."
+      )
+    } finally {
+      setCleaning(false)
+    }
   }
 
   const handleGenerate = () => {
@@ -854,7 +876,7 @@ export default function AnalyzerPage() {
                   key={resource.name}
                   className="p-5 bg-slate-950/80 border border-green-500/20 rounded-lg hover:border-green-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/10"
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="space-y-4">
                     <div>
                       <h3 className="text-xl font-semibold text-green-400 mb-2 flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -874,9 +896,61 @@ export default function AnalyzerPage() {
                         ))}
                       </div>
                     </div>
+
+                    {/* Field Names Display */}
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                        <Braces className="w-4 h-4 text-purple-400" />
+                        Fields
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {resource.fields.map((field) => (
+                          <div
+                            key={field.name}
+                            className="flex items-center justify-between p-2 bg-slate-900/60 border border-slate-800 rounded hover:border-purple-500/30 transition-colors group"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <code className="text-xs font-mono text-purple-300 truncate">
+                                {field.name}
+                              </code>
+                              {field.name === resource.primaryKey && (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded border border-green-500/30 font-semibold">
+                                  PK
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <span className="text-[10px] px-2 py-0.5 bg-slate-800 text-gray-400 rounded font-mono">
+                                {field.type}
+                              </span>
+                              <ChevronRight className="w-3 h-3 text-gray-600 group-hover:text-purple-400 transition-colors" />
+                              <span className="text-xs text-gray-300 group-hover:text-white transition-colors">
+                                {field.displayName}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
+
+              {/* Clean Names Button */}
+              <div className="pt-4 border-t border-slate-800">
+                <Button
+                  onClick={handleCleanNames}
+                  disabled={cleaning}
+                  variant="outline"
+                  className="w-full text-purple-400 border-purple-500/30 hover:bg-purple-500/10 hover:border-purple-500 transition-all duration-300 py-5"
+                >
+                  <Sparkles className={`mr-2 w-5 h-5 ${cleaning ? "animate-spin" : ""}`} />
+                  {cleaning ? "Cleaning Field Names..." : "✨ Clean Field Names with AI"}
+                </Button>
+                <p className="text-xs text-gray-500 text-center mt-2">
+                  Use AI to intelligently clean technical field names (removes prefixes, expands abbreviations)
+                </p>
+              </div>
 
               <Button onClick={handleGenerate} className="w-full text-white text-lg py-6 mt-6 portal-button">
                 <Skull className="mr-2 w-5 h-5" />

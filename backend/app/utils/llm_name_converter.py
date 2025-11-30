@@ -1,12 +1,11 @@
-"""LLM-based display name converter.
+"""Display name converter utilities.
 
-Uses OpenAI or Anthropic to convert technical field names into human-readable
-display names. Includes batching for efficiency and in-memory caching.
-Falls back to simple Title Case if LLM is unavailable.
+Provides simple string transformation for default use, and optional LLM-based
+intelligent conversion for the /api/clean-names endpoint.
 """
 
+import json
 import logging
-from typing import Any
 
 from anthropic import Anthropic
 from openai import OpenAI
@@ -30,98 +29,105 @@ class DisplayNameBatch(BaseModel):
     conversions: list[DisplayNameConversion]
 
 
-# In-memory cache for display name conversions (per-request)
-_display_name_cache: dict[str, str] = {}
+def simple_title_case(name: str) -> str:
+    """Convert field name to simple Title Case using string transformation rules.
 
+    This is the default, fast method used by /api/analyze endpoint.
+    No external API calls required.
 
-def clear_cache() -> None:
-    """Clear the display name cache.
-
-    Should be called at the start of each request to ensure fresh conversions.
-    """
-    global _display_name_cache
-    _display_name_cache = {}
-
-
-def convert_to_display_name(field_name: str) -> str:
-    """Convert a single field name to display name.
-
-    Uses cache if available, otherwise falls back to Title Case.
-    For batch conversion, use convert_batch_to_display_names().
+    Rules:
+    - Replace underscores and hyphens with spaces
+    - Insert spaces before capital letters (camelCase)
+    - Apply Title Case to all words
 
     Args:
-        field_name: Technical field name (e.g., "user_id", "createdAt")
+        name: Field name
 
     Returns:
-        Human-readable display name (e.g., "User ID", "Created At")
+        Title Case display name
 
     Examples:
-        >>> convert_to_display_name("user_name")
+        >>> simple_title_case("user_name")
         'User Name'
-        >>> convert_to_display_name("userId")
+        >>> simple_title_case("userId")
         'User Id'
-        >>> convert_to_display_name("api_key")
+        >>> simple_title_case("api_key")
         'Api Key'
+        >>> simple_title_case("getUserData")
+        'Get User Data'
+        >>> simple_title_case("email-address")
+        'Email Address'
     """
-    # Check cache first
-    if field_name in _display_name_cache:
-        return _display_name_cache[field_name]
+    # Replace underscores and hyphens with spaces
+    name = name.replace("_", " ").replace("-", " ")
 
-    # Fallback to simple Title Case
-    display_name = _simple_title_case(field_name)
-    _display_name_cache[field_name] = display_name
-    return display_name
+    # Insert space before capital letters (camelCase)
+    result = []
+    for i, char in enumerate(name):
+        if i > 0 and char.isupper() and name[i - 1].islower():
+            result.append(" ")
+        result.append(char)
+
+    name = "".join(result)
+
+    # Title case
+    return name.title()
 
 
-def convert_batch_to_display_names(
-    field_names: list[str], use_llm: bool = True
-) -> dict[str, str]:
-    """Convert a batch of field names to display names using LLM.
+def convert_batch_to_display_names_simple(field_names: list[str]) -> dict[str, str]:
+    """Convert a batch of field names using simple Title Case transformation.
 
-    Batches up to 50 names per LLM call for efficiency.
-    Caches results in memory for the duration of the request.
-    Falls back to Title Case if LLM fails.
+    This is the default method used by /api/analyze endpoint.
+    Fast, predictable, no external dependencies.
 
     Args:
         field_names: List of technical field names
-        use_llm: Whether to attempt LLM conversion (default True)
 
     Returns:
         Dictionary mapping field names to display names
 
     Examples:
-        >>> convert_batch_to_display_names(["user_id", "created_at"])
-        {'user_id': 'User ID', 'created_at': 'Created At'}
+        >>> convert_batch_to_display_names_simple(["user_id", "created_at"])
+        {'user_id': 'User Id', 'created_at': 'Created At'}
+    """
+    return {name: simple_title_case(name) for name in field_names}
+
+
+def convert_batch_to_display_names_llm(field_names: list[str]) -> dict[str, str]:
+    """Convert a batch of field names using LLM for intelligent cleaning.
+
+    This is used by the optional /api/clean-names endpoint.
+    Handles complex cases like abbreviations, prefixes, suffixes.
+
+    Batches up to 50 names per LLM call for efficiency.
+    Falls back to simple Title Case if LLM fails.
+
+    Args:
+        field_names: List of technical field names
+
+    Returns:
+        Dictionary mapping field names to display names
+
+    Raises:
+        Exception: If LLM is not configured or fails
+
+    Examples:
+        >>> convert_batch_to_display_names_llm(["usr_prof_v2", "dt_created_ts"])
+        {'usr_prof_v2': 'User Profile', 'dt_created_ts': 'Date Created'}
     """
     if not field_names:
         return {}
 
-    # Check cache for existing conversions
-    uncached_names = [name for name in field_names if name not in _display_name_cache]
+    if not settings.llm_provider:
+        raise ValueError("LLM provider not configured")
 
-    if not uncached_names:
-        # All names are cached
-        return {name: _display_name_cache[name] for name in field_names}
-
-    # Try LLM conversion if enabled
-    if use_llm and settings.llm_provider:
-        try:
-            conversions = _convert_with_llm(uncached_names)
-            # Update cache
-            _display_name_cache.update(conversions)
-        except Exception as e:
-            logger.warning("LLM display name conversion failed: %s", e)
-            # Fall back to Title Case for uncached names
-            for name in uncached_names:
-                if name not in _display_name_cache:
-                    _display_name_cache[name] = _simple_title_case(name)
-    else:
-        # Use Title Case fallback
-        for name in uncached_names:
-            _display_name_cache[name] = _simple_title_case(name)
-
-    # Return all requested names from cache
-    return {name: _display_name_cache[name] for name in field_names}
+    try:
+        return _convert_with_llm(field_names)
+    except Exception as e:
+        logger.error("LLM display name conversion failed: %s", e)
+        # Fall back to simple Title Case
+        logger.warning("Falling back to simple Title Case conversion")
+        return convert_batch_to_display_names_simple(field_names)
 
 
 def _convert_with_llm(field_names: list[str]) -> dict[str, str]:
@@ -166,10 +172,9 @@ def _convert_batch_with_llm(field_names: list[str]) -> dict[str, str]:
 
     if settings.llm_provider == "openai":
         return _convert_with_openai(prompt, field_names)
-    elif settings.llm_provider == "anthropic":
+    if settings.llm_provider == "anthropic":
         return _convert_with_anthropic(prompt, field_names)
-    else:
-        raise ValueError(f"Unsupported LLM provider: {settings.llm_provider}")
+    raise ValueError(f"Unsupported LLM provider: {settings.llm_provider}")
 
 
 def _build_conversion_prompt(field_names: list[str]) -> str:
@@ -186,16 +191,25 @@ def _build_conversion_prompt(field_names: list[str]) -> str:
     return f"""Convert these technical field names into human-readable display names.
 
 Rules:
-- Convert snake_case and camelCase to Title Case with spaces
-- Expand common abbreviations (e.g., "id" → "ID", "url" → "URL", "api" → "API")
-- Keep acronyms uppercase (e.g., "user_id" → "User ID", not "User Id")
-- Make names natural and professional for a business application UI
+- Remove technical prefixes (fld_, tbl_, col_)
+- Remove version suffixes (_v1, _v2, _new, _old)
+- Expand abbreviations (usr→User, addr→Address, dt→Date, ts→Timestamp)
+- Convert to Title Case with spaces
+- Keep numbers only if meaningful (user_id_2 → User ID, not User ID 2)
+- Be concise (max 3-4 words)
+
+Examples:
+usr_prof_v2 → User Profile
+dt_created_ts → Date Created
+fld_email_addr_1 → Email Address
+getUserData → Get User Data
+user$name → User Name
 
 Field names:
 {names_list}
 
 Return a JSON object mapping each field name to its display name.
-Example: {{"user_id": "User ID", "created_at": "Created At"}}"""
+Example: {{"usr_prof_v2": "User Profile", "dt_created_ts": "Date Created"}}"""
 
 
 def _convert_with_openai(prompt: str, field_names: list[str]) -> dict[str, str]:
@@ -211,6 +225,9 @@ def _convert_with_openai(prompt: str, field_names: list[str]) -> dict[str, str]:
     Raises:
         Exception: If API call fails
     """
+    if not settings.openai_api_key:
+        raise ValueError("OpenAI API key not configured")
+
     client = OpenAI(api_key=settings.openai_api_key)
 
     response = client.chat.completions.create(
@@ -218,7 +235,7 @@ def _convert_with_openai(prompt: str, field_names: list[str]) -> dict[str, str]:
         messages=[
             {
                 "role": "system",
-                "content": "You are a helpful assistant that converts technical field names to human-readable display names.",
+                "content": "You convert technical field names to human-readable names.",
             },
             {"role": "user", "content": prompt},
         ],
@@ -229,15 +246,13 @@ def _convert_with_openai(prompt: str, field_names: list[str]) -> dict[str, str]:
     if not result:
         raise ValueError("Empty response from OpenAI")
 
-    import json
-
     conversions = json.loads(result)
 
     # Validate that all field names are present
     for name in field_names:
         if name not in conversions:
             logger.warning("LLM did not convert field '%s', using fallback", name)
-            conversions[name] = _simple_title_case(name)
+            conversions[name] = simple_title_case(name)
 
     return conversions
 
@@ -255,6 +270,9 @@ def _convert_with_anthropic(prompt: str, field_names: list[str]) -> dict[str, st
     Raises:
         Exception: If API call fails
     """
+    if not settings.anthropic_api_key:
+        raise ValueError("Anthropic API key not configured")
+
     client = Anthropic(api_key=settings.anthropic_api_key)
 
     response = client.messages.create(
@@ -266,8 +284,6 @@ def _convert_with_anthropic(prompt: str, field_names: list[str]) -> dict[str, st
     result = response.content[0].text if response.content else None
     if not result:
         raise ValueError("Empty response from Anthropic")
-
-    import json
 
     # Extract JSON from response (Claude might wrap it in markdown)
     if "```json" in result:
@@ -281,41 +297,6 @@ def _convert_with_anthropic(prompt: str, field_names: list[str]) -> dict[str, st
     for name in field_names:
         if name not in conversions:
             logger.warning("LLM did not convert field '%s', using fallback", name)
-            conversions[name] = _simple_title_case(name)
+            conversions[name] = simple_title_case(name)
 
     return conversions
-
-
-def _simple_title_case(name: str) -> str:
-    """Convert field name to simple Title Case.
-
-    Fallback when LLM is unavailable.
-
-    Args:
-        name: Field name
-
-    Returns:
-        Title Case display name
-
-    Examples:
-        >>> _simple_title_case("user_name")
-        'User Name'
-        >>> _simple_title_case("userId")
-        'User Id'
-        >>> _simple_title_case("api_key")
-        'Api Key'
-    """
-    # Replace underscores and hyphens with spaces
-    name = name.replace("_", " ").replace("-", " ")
-
-    # Insert space before capital letters (camelCase)
-    result = []
-    for i, char in enumerate(name):
-        if i > 0 and char.isupper() and name[i - 1].islower():
-            result.append(" ")
-        result.append(char)
-
-    name = "".join(result)
-
-    # Title case
-    return name.title()

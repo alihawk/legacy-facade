@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.analyze import router as analyze_router
+from app.api.clean_names import router as clean_names_router
 
 app = FastAPI(
     title="Backend API Analyzer",
@@ -22,6 +23,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(analyze_router, prefix="/api", tags=["analyze"])
+app.include_router(clean_names_router, prefix="/api", tags=["clean-names"])
 
 
 @app.get("/")

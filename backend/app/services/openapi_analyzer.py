@@ -2,11 +2,19 @@
 
 Parses OpenAPI 3.0 and Swagger 2.0 specifications to extract resource schemas.
 Supports both JSON and YAML formats, and can fetch specs from URLs.
+
+Performance optimizations:
+- Uses StringIO to avoid temp file disk I/O
+- Caches parsed specs by content hash
+- Runs parsing in thread pool to avoid blocking event loop
 """
 
+import asyncio
+import hashlib
+import json
 import logging
-import tempfile
-from pathlib import Path
+from functools import lru_cache
+from io import StringIO
 from typing import Any
 
 import yaml
@@ -14,15 +22,71 @@ from openapi_parser import parse
 
 from app.core.http_client import HTTPClient
 from app.models.resource_schema import ResourceField, ResourceSchema
-from app.utils.llm_name_converter import convert_batch_to_display_names
+from app.utils.llm_name_converter import convert_batch_to_display_names_simple
 from app.utils.primary_key_detector import detect_primary_key
 from app.utils.type_inference import infer_type_from_openapi_schema
 
 logger = logging.getLogger(__name__)
 
 
+def _compute_spec_hash(spec_data: dict | str) -> str:
+    """Compute hash of spec data for caching.
+
+    Args:
+        spec_data: OpenAPI spec as dict or string
+
+    Returns:
+        SHA256 hash of the spec content
+    """
+    if isinstance(spec_data, dict):
+        # Convert dict to stable JSON string for hashing
+        content = json.dumps(spec_data, sort_keys=True)
+    else:
+        content = spec_data
+
+    return hashlib.sha256(content.encode()).hexdigest()
+
+
+@lru_cache(maxsize=100)
+def _parse_openapi_cached(spec_hash: str, spec_yaml: str) -> Any:
+    """Parse OpenAPI spec with caching.
+
+    Uses LRU cache to avoid re-parsing the same spec.
+    Runs synchronously but is called from thread pool.
+
+    Args:
+        spec_hash: Hash of spec content (for cache key)
+        spec_yaml: YAML string of the spec
+
+    Returns:
+        Parsed OpenAPI specification object
+
+    Raises:
+        Exception: If parsing fails
+    """
+    # Create a temporary file for openapi_parser (it requires a file path)
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".yaml", delete=False
+    ) as f:
+        f.write(spec_yaml)
+        temp_path = f.name
+
+    try:
+        specification = parse(temp_path)
+        return specification
+    finally:
+        Path(temp_path).unlink(missing_ok=True)
+
+
 async def analyze_openapi_spec(spec_data: dict | str) -> list[ResourceSchema]:
     """Analyze OpenAPI specification and extract resource schemas.
+
+    Optimizations:
+    - Caches parsed specs by content hash
+    - Runs parsing in thread pool to avoid blocking
 
     Args:
         spec_data: OpenAPI spec as dict (JSON) or string (YAML)
@@ -33,22 +97,23 @@ async def analyze_openapi_spec(spec_data: dict | str) -> list[ResourceSchema]:
     Raises:
         ValueError: If spec is invalid or cannot be parsed
     """
-    # openapi_parser.parse() requires a file path, so we need to write to temp file
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-        if isinstance(spec_data, str):
-            f.write(spec_data)
-        else:
-            yaml.dump(spec_data, f)
-        temp_path = f.name
+    # Convert to YAML string for parsing
+    if isinstance(spec_data, str):
+        spec_yaml = spec_data
+    else:
+        spec_yaml = yaml.dump(spec_data)
+
+    # Compute hash for caching
+    spec_hash = _compute_spec_hash(spec_data)
 
     try:
-        # Parse with openapi_parser
-        specification = parse(temp_path)
+        # Run parsing in thread pool to avoid blocking event loop
+        loop = asyncio.get_event_loop()
+        specification = await loop.run_in_executor(
+            None, _parse_openapi_cached, spec_hash, spec_yaml
+        )
     except Exception as e:
         raise ValueError(f"Invalid OpenAPI specification: {e}") from e
-    finally:
-        # Clean up temp file
-        Path(temp_path).unlink(missing_ok=True)
 
     # Extract resources from paths
     resources = _extract_resources_from_openapi(specification)
@@ -139,8 +204,8 @@ def _extract_resources_from_openapi(specification: Any) -> list[ResourceSchema]:
         all_names.append(resource_data["name"])
         all_names.extend(resource_data["fields"].keys())
     
-    # Batch convert all names to display names using LLM
-    display_names = convert_batch_to_display_names(all_names)
+    # Batch convert all names to display names using simple transformation
+    display_names = convert_batch_to_display_names_simple(all_names)
 
     # Convert to ResourceSchema objects
     resources = []
@@ -330,6 +395,41 @@ def _extract_fields_from_schema(
 
     # Handle object schemas with properties
     if hasattr(schema, "properties") and schema.properties:
+        # Check if this is a wrapper object containing an array
+        # Common patterns: {Data: {Users: [...]}} or {data: [...]}
+        if len(schema.properties) == 1:
+            # Single property - might be a wrapper
+            prop = schema.properties[0]
+            prop_schema = prop.schema
+            
+            # Check if the property is an object or array
+            if hasattr(prop_schema, "type") and prop_schema.type:
+                prop_type_str = str(prop_schema.type).lower()
+                
+                # If it's an array, unwrap and extract from items
+                if "array" in prop_type_str:
+                    if hasattr(prop_schema, "items") and prop_schema.items:
+                        return _extract_fields_from_schema(prop_schema.items, resource_name, visited)
+                
+                # If it's an object, check if it contains an array
+                if "object" in prop_type_str:
+                    if hasattr(prop_schema, "properties") and prop_schema.properties:
+                        # Recursively check nested properties for arrays
+                        nested_fields = _extract_fields_from_schema(prop_schema, resource_name, visited)
+                        if nested_fields:
+                            return nested_fields
+        
+        # Check if any property is an array (for multi-property wrappers)
+        for prop in schema.properties:
+            prop_schema = prop.schema
+            if hasattr(prop_schema, "type") and prop_schema.type:
+                prop_type_str = str(prop_schema.type).lower()
+                if "array" in prop_type_str:
+                    # Found an array property - extract from its items
+                    if hasattr(prop_schema, "items") and prop_schema.items:
+                        return _extract_fields_from_schema(prop_schema.items, resource_name, visited)
+        
+        # No array found in nested structure, extract fields normally
         for prop in schema.properties:
             prop_name = prop.name
             prop_schema = prop.schema

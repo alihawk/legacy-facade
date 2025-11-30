@@ -2,7 +2,6 @@
 
 import json
 import logging
-from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -12,7 +11,6 @@ from app.services.endpoint_analyzer import analyze_endpoint
 from app.services.json_analyzer import analyze_json_sample
 from app.services.openapi_analyzer import analyze_openapi_spec, analyze_openapi_url
 from app.services.schema_normalizer import normalize_resources
-from app.utils.llm_name_converter import clear_cache
 
 logger = logging.getLogger(__name__)
 
@@ -53,13 +51,10 @@ async def analyze(request: Request) -> JSONResponse:
         analyze_request = AnalyzeRequest(**body)
     except json.JSONDecodeError as e:
         logger.error("Invalid JSON: %s", e)
-        raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}")
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}") from e
     except Exception as e:
         logger.error("Invalid request: %s", e)
-        raise HTTPException(status_code=400, detail=f"Invalid request: {e}")
-
-    # Clear LLM name conversion cache for this request
-    clear_cache()
+        raise HTTPException(status_code=400, detail=f"Invalid request: {e}") from e
 
     # Route to appropriate analyzer based on mode
     try:
@@ -91,8 +86,8 @@ async def analyze(request: Request) -> JSONResponse:
         # Handle validation errors (no resources, invalid spec, etc.)
         logger.error("Validation error: %s", e)
         if "No resources found" in str(e) or "cannot be empty" in str(e):
-            raise HTTPException(status_code=422, detail=str(e))
-        raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=422, detail=str(e)) from e
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
     except HTTPException:
         # Re-raise HTTP exceptions
@@ -101,7 +96,7 @@ async def analyze(request: Request) -> JSONResponse:
     except Exception as e:
         # Catch-all for unexpected errors
         logger.exception("Unexpected error during analysis")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {e}") from e
 
 
 async def _handle_openapi_mode(request: AnalyzeRequest) -> list:
@@ -116,7 +111,7 @@ async def _handle_openapi_mode(request: AnalyzeRequest) -> list:
         return resources
     except ValueError as e:
         if "Invalid OpenAPI specification" in str(e):
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from e
         raise
 
 
@@ -132,9 +127,9 @@ async def _handle_openapi_url_mode(request: AnalyzeRequest) -> list:
         return resources
     except ValueError as e:
         if "Unable to fetch" in str(e) or "timeout" in str(e).lower():
-            raise HTTPException(status_code=503, detail=str(e))
+            raise HTTPException(status_code=503, detail=str(e)) from e
         if "Invalid OpenAPI specification" in str(e):
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from e
         raise
 
 
@@ -154,7 +149,7 @@ async def _handle_endpoint_mode(request: AnalyzeRequest) -> list:
         except json.JSONDecodeError as e:
             raise HTTPException(
                 status_code=400, detail=f"Invalid customHeaders JSON: {e}"
-            )
+            ) from e
 
     # Handle auth
     auth_type = None if request.authType == "none" else request.authType
@@ -172,7 +167,7 @@ async def _handle_endpoint_mode(request: AnalyzeRequest) -> list:
         return resources
     except ValueError as e:
         if "Unable to reach endpoint" in str(e) or "timeout" in str(e).lower():
-            raise HTTPException(status_code=503, detail=str(e))
+            raise HTTPException(status_code=503, detail=str(e)) from e
         raise
 
 
@@ -187,4 +182,4 @@ async def _handle_json_sample_mode(request: AnalyzeRequest) -> list:
         resources = await analyze_json_sample(request.sampleJson)
         return resources
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e

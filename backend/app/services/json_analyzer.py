@@ -5,13 +5,12 @@ Handles both array and single object samples, with nested structure unwrapping.
 """
 
 import logging
-from typing import Any
 
 from app.models.resource_schema import ResourceField, ResourceSchema
-from app.utils.llm_name_converter import convert_batch_to_display_names
+from app.utils.llm_name_converter import convert_batch_to_display_names_simple
 from app.utils.primary_key_detector import detect_primary_key
 from app.utils.response_unwrapper import unwrap_response
-from app.utils.type_inference import infer_field_type, infer_type_from_values
+from app.utils.type_inference import infer_type_from_values
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +59,9 @@ async def analyze_json_sample(sample_json: dict | list) -> list[ResourceSchema]:
                 all_fields[field_name] = []
             all_fields[field_name].append(field_value)
 
-    # Batch convert all field names to display names using LLM
+    # Batch convert all field names to display names using simple transformation
     field_names = list(all_fields.keys())
-    display_names = convert_batch_to_display_names(field_names)
+    display_names = convert_batch_to_display_names_simple(field_names)
 
     # Infer field types from collected values
     fields = []

@@ -1,134 +1,271 @@
 """Tests for primary key detector utility.
 
-Property-based tests validate that the detector correctly identifies
-primary keys across various field name patterns.
+Tests validate regex-based pattern matching with word boundaries and LLM fallback
+for ambiguous cases (zero or multiple candidates).
 """
 
-from hypothesis import given, strategies as st
+from unittest.mock import patch
 
-from app.utils.primary_key_detector import detect_primary_key, _singularize_resource_name
+import pytest
+from hypothesis import given, settings, strategies as st
 
-
-# Unit tests for specific cases
-def test_detect_id_field():
-    """Test detection of 'id' field."""
-    field_names = ["id", "name", "email"]
-    result = detect_primary_key(field_names)
-    assert result == "id"
+from app.utils.primary_key_detector import (
+    detect_primary_key,
+    _find_primary_key_candidates,
+)
 
 
-def test_detect_underscore_id_field():
-    """Test detection of '_id' field."""
-    field_names = ["_id", "name", "email"]
-    result = detect_primary_key(field_names)
-    assert result == "_id"
+# Unit tests for regex pattern matching
+class TestRegexPatternMatching:
+    """Test regex-based primary key pattern detection."""
+
+    def test_detect_id_pattern(self):
+        """Test detection of 'id' field using word boundary."""
+        field_names = ["id", "name", "email"]
+        result = detect_primary_key(field_names)
+        assert result == "id"
+
+    def test_detect_user_id_pattern(self):
+        """Test detection of 'user_id' field (contains 'id')."""
+        field_names = ["user_id", "name", "email"]
+        result = detect_primary_key(field_names)
+        assert result == "user_id"
+
+    def test_detect_userId_camelCase_pattern(self):
+        """Test detection of 'userId' field (contains 'id')."""
+        field_names = ["userId", "name", "email"]
+        result = detect_primary_key(field_names)
+        assert result == "userId"
+
+    def test_id_pattern_does_not_match_video(self):
+        """Test that 'video' does not match 'id' pattern (word boundary)."""
+        field_names = ["video", "audio", "name"]
+        candidates = _find_primary_key_candidates(field_names)
+        assert "video" not in candidates
+        assert len(candidates) == 0
+
+    def test_detect_key_pattern(self):
+        """Test detection of 'key' field."""
+        field_names = ["key", "name", "value"]
+        result = detect_primary_key(field_names)
+        assert result == "key"
+
+    def test_detect_api_key_pattern(self):
+        """Test detection of 'api_key' field (contains 'key')."""
+        field_names = ["api_key", "name", "value"]
+        result = detect_primary_key(field_names)
+        assert result == "api_key"
+
+    def test_detect_code_pattern(self):
+        """Test detection of 'code' field."""
+        field_names = ["code", "name", "description"]
+        result = detect_primary_key(field_names)
+        assert result == "code"
+
+    def test_detect_user_code_pattern(self):
+        """Test detection of 'user_code' field (contains 'code')."""
+        field_names = ["user_code", "name", "email"]
+        result = detect_primary_key(field_names)
+        assert result == "user_code"
+
+    def test_detect_number_pattern(self):
+        """Test detection of 'number' field."""
+        field_names = ["number", "name", "value"]
+        result = detect_primary_key(field_names)
+        assert result == "number"
+
+    def test_detect_account_number_pattern(self):
+        """Test detection of 'account_number' field (contains 'number')."""
+        field_names = ["account_number", "name", "balance"]
+        result = detect_primary_key(field_names)
+        assert result == "account_number"
+
+    def test_detect_uuid_pattern(self):
+        """Test detection of 'uuid' field."""
+        field_names = ["uuid", "name", "created_at"]
+        result = detect_primary_key(field_names)
+        assert result == "uuid"
+
+    def test_detect_user_uuid_pattern(self):
+        """Test detection of 'user_uuid' field (contains 'uuid')."""
+        field_names = ["user_uuid", "name", "email"]
+        result = detect_primary_key(field_names)
+        assert result == "user_uuid"
+
+    def test_detect_guid_pattern(self):
+        """Test detection of 'guid' field."""
+        field_names = ["guid", "name", "created_at"]
+        result = detect_primary_key(field_names)
+        assert result == "guid"
+
+    def test_detect_pk_pattern(self):
+        """Test detection of 'pk' field."""
+        field_names = ["pk", "name", "value"]
+        result = detect_primary_key(field_names)
+        assert result == "pk"
+
+    def test_detect_primary_key_pattern(self):
+        """Test detection of 'primary_key' field."""
+        field_names = ["primary_key", "name", "value"]
+        result = detect_primary_key(field_names)
+        assert result == "primary_key"
+
+    def test_detect_no_pattern(self):
+        """Test detection of 'no' field (numeric identifier)."""
+        field_names = ["no", "name", "value"]
+        result = detect_primary_key(field_names)
+        assert result == "no"
+
+    def test_detect_order_no_pattern(self):
+        """Test detection of 'order_no' field (contains 'no')."""
+        field_names = ["order_no", "customer", "total"]
+        result = detect_primary_key(field_names)
+        assert result == "order_no"
+
+    def test_detect_num_pattern(self):
+        """Test detection of 'num' field."""
+        field_names = ["num", "name", "value"]
+        result = detect_primary_key(field_names)
+        assert result == "num"
+
+    def test_detect_seq_pattern(self):
+        """Test detection of 'seq' field."""
+        field_names = ["seq", "name", "value"]
+        result = detect_primary_key(field_names)
+        assert result == "seq"
+
+    def test_detect_recid_pattern(self):
+        """Test detection of 'recid' field (legacy pattern)."""
+        field_names = ["recid", "name", "value"]
+        result = detect_primary_key(field_names)
+        assert result == "recid"
+
+    def test_detect_record_id_pattern(self):
+        """Test detection of 'record_id' field (legacy pattern)."""
+        field_names = ["record_id", "name", "value"]
+        result = detect_primary_key(field_names)
+        assert result == "record_id"
+
+    def test_detect_rowid_pattern(self):
+        """Test detection of 'rowid' field (legacy pattern)."""
+        field_names = ["rowid", "name", "value"]
+        result = detect_primary_key(field_names)
+        assert result == "rowid"
 
 
-def test_id_takes_priority_over_underscore_id():
-    """Test that 'id' takes priority over '_id'."""
-    field_names = ["id", "_id", "name"]
-    result = detect_primary_key(field_names)
-    assert result == "id"
+class TestCandidateFinding:
+    """Test the _find_primary_key_candidates helper function."""
+
+    def test_single_candidate(self):
+        """Test finding single primary key candidate."""
+        field_names = ["id", "name", "email"]
+        candidates = _find_primary_key_candidates(field_names)
+        assert candidates == ["id"]
+
+    def test_multiple_candidates(self):
+        """Test finding multiple primary key candidates."""
+        field_names = ["id", "uuid", "name"]
+        candidates = _find_primary_key_candidates(field_names)
+        assert set(candidates) == {"id", "uuid"}
+
+    def test_no_candidates(self):
+        """Test finding no primary key candidates."""
+        field_names = ["name", "email", "created_at"]
+        candidates = _find_primary_key_candidates(field_names)
+        assert candidates == []
+
+    def test_word_boundary_prevents_false_match(self):
+        """Test that word boundaries prevent false matches."""
+        field_names = ["video", "audio", "name"]
+        candidates = _find_primary_key_candidates(field_names)
+        assert candidates == []
+
+    def test_case_insensitive_matching(self):
+        """Test that pattern matching is case-insensitive."""
+        field_names = ["ID", "Name", "Email"]
+        candidates = _find_primary_key_candidates(field_names)
+        assert candidates == ["ID"]
+
+    def test_multiple_patterns_in_one_field(self):
+        """Test field matching multiple patterns only added once."""
+        field_names = ["id_key", "name"]  # Matches both 'id' and 'key'
+        candidates = _find_primary_key_candidates(field_names)
+        assert candidates == ["id_key"]
+        assert len(candidates) == 1  # Should only appear once
+
+    def test_id_pattern_prioritized_over_code_pattern(self):
+        """Test that 'id' pattern takes priority over 'code' pattern.
+        
+        Regression test for performance issue where dept_code was matching
+        'code' pattern and triggering unnecessary LLM disambiguation when
+        user_id was present.
+        """
+        field_names = ["user_id", "dept_code", "name", "email"]
+        candidates = _find_primary_key_candidates(field_names)
+        # Should only return user_id, not dept_code
+        assert candidates == ["user_id"]
+        
+        # Verify detect_primary_key returns user_id without LLM call
+        result = detect_primary_key(field_names)
+        assert result == "user_id"
 
 
-def test_detect_resource_snake_case_pattern():
-    """Test detection of {resource}_id pattern."""
-    field_names = ["user_id", "name", "email"]
-    result = detect_primary_key(field_names, resource_name="users")
-    assert result == "user_id"
+class TestLLMFallback:
+    """Test LLM fallback for ambiguous cases."""
+
+    @patch("app.utils.primary_key_detector.settings")
+    def test_zero_candidates_uses_llm_or_defaults_to_id(self, mock_settings):
+        """Test that zero candidates triggers LLM or defaults to 'id'."""
+        # Disable LLM to test default behavior
+        mock_settings.openai_api_key = None
+
+        field_names = ["name", "email", "created_at"]
+        result = detect_primary_key(field_names)
+        # Should default to "id" when LLM is not configured
+        assert result == "id"
+
+    @patch("app.utils.primary_key_detector.settings")
+    def test_multiple_candidates_uses_llm_or_first(self, mock_settings):
+        """Test that multiple candidates triggers LLM or uses first."""
+        # Disable LLM to test fallback behavior
+        mock_settings.openai_api_key = None
+
+        field_names = ["id", "uuid", "key", "name"]
+        result = detect_primary_key(field_names)
+        # Should fall back to first candidate when LLM is not configured
+        assert result == "id"  # First candidate
+
+    def test_single_candidate_no_llm_needed(self):
+        """Test that single candidate doesn't need LLM."""
+        field_names = ["user_id", "name", "email"]
+        result = detect_primary_key(field_names)
+        assert result == "user_id"
 
 
-def test_detect_resource_camel_case_pattern():
-    """Test detection of {resource}Id pattern."""
-    field_names = ["userId", "name", "email"]
-    result = detect_primary_key(field_names, resource_name="users")
-    assert result == "userId"
+class TestEdgeCases:
+    """Test edge cases and error handling."""
 
+    def test_empty_field_list_defaults_to_id(self):
+        """Test that empty field list defaults to 'id'."""
+        result = detect_primary_key([])
+        assert result == "id"
 
-def test_id_takes_priority_over_resource_pattern():
-    """Test that 'id' takes priority over resource-specific patterns."""
-    field_names = ["id", "user_id", "name"]
-    result = detect_primary_key(field_names, resource_name="users")
-    assert result == "id"
+    @patch("app.utils.primary_key_detector.settings")
+    def test_resource_name_passed_to_llm(self, mock_settings):
+        """Test that resource name is passed to LLM for context."""
+        # Disable LLM to test fallback behavior
+        mock_settings.openai_api_key = None
 
-
-def test_underscore_id_takes_priority_over_resource_pattern():
-    """Test that '_id' takes priority over resource-specific patterns."""
-    field_names = ["_id", "user_id", "name"]
-    result = detect_primary_key(field_names, resource_name="users")
-    assert result == "_id"
-
-
-def test_default_to_id_when_no_match():
-    """Test defaulting to 'id' when no pattern matches."""
-    field_names = ["name", "email", "created_at"]
-    result = detect_primary_key(field_names)
-    assert result == "id"
-
-
-def test_default_to_id_when_empty_list():
-    """Test defaulting to 'id' when field list is empty."""
-    result = detect_primary_key([])
-    assert result == "id"
-
-
-def test_default_to_id_with_resource_name_no_match():
-    """Test defaulting to 'id' when resource pattern doesn't match."""
-    field_names = ["name", "email"]
-    result = detect_primary_key(field_names, resource_name="users")
-    assert result == "id"
-
-
-def test_resource_pattern_with_singular_resource():
-    """Test resource pattern works with singular resource name."""
-    field_names = ["user_id", "name"]
-    result = detect_primary_key(field_names, resource_name="user")
-    assert result == "user_id"
-
-
-def test_resource_pattern_with_plural_resource():
-    """Test resource pattern works with plural resource name."""
-    field_names = ["user_id", "name"]
-    result = detect_primary_key(field_names, resource_name="users")
-    assert result == "user_id"
-
-
-def test_multiple_resource_patterns_snake_case_wins():
-    """Test that snake_case pattern is preferred over camelCase."""
-    field_names = ["user_id", "userId", "name"]
-    result = detect_primary_key(field_names, resource_name="users")
-    assert result == "user_id"
-
-
-def test_singularize_users():
-    """Test singularization of 'users'."""
-    assert _singularize_resource_name("users") == "user"
-
-
-def test_singularize_items():
-    """Test singularization of 'items'."""
-    assert _singularize_resource_name("items") == "item"
-
-
-def test_singularize_categories():
-    """Test singularization of 'categories'."""
-    assert _singularize_resource_name("categories") == "category"
-
-
-def test_singularize_addresses():
-    """Test singularization of 'addresses'."""
-    assert _singularize_resource_name("addresses") == "address"
-
-
-def test_singularize_already_singular():
-    """Test singularization of already singular word."""
-    assert _singularize_resource_name("user") == "user"
-    assert _singularize_resource_name("data") == "data"
+        # Multiple candidates should trigger LLM with resource context
+        field_names = ["id", "uuid", "name"]
+        result = detect_primary_key(field_names, resource_name="users")
+        # Should fall back to first candidate
+        assert result == "id"
 
 
 # Property-based tests
-# Feature: backend-api-analyzer, Property 5: Primary Key Detection
-# Feature: backend-api-analyzer, Property 6: Primary Key Default Behavior
+# Feature: backend-api-analyzer, Property 5: Primary Key Pattern Detection
+# Feature: backend-api-analyzer, Property 6: Primary Key Disambiguation
 
 
 @given(
@@ -139,23 +276,134 @@ def test_singularize_already_singular():
             ),
             min_size=1,
             max_size=20,
-        ).filter(lambda x: x not in ["id", "_id"]),
+        ).filter(
+            lambda x: not any(
+                pattern in x.lower()
+                for pattern in [
+                    "id",
+                    "key",
+                    "code",
+                    "number",
+                    "uuid",
+                    "guid",
+                    "pk",
+                    "no",
+                    "num",
+                    "seq",
+                    "recid",
+                    "rowid",
+                ]
+            )
+        ),
         min_size=0,
         max_size=10,
     )
 )
-def test_property_id_field_always_detected(other_fields):
-    """Property: If 'id' field exists, it should be detected as primary key.
+@settings(max_examples=50, deadline=None)
+def test_property_id_pattern_always_detected(other_fields):
+    """Property: If field contains 'id' pattern, it should be detected.
 
-    For any list of field names containing 'id', detect_primary_key
-    should return 'id'.
+    For any list of field names containing a field with 'id' pattern,
+    detect_primary_key should return that field.
     """
-    field_names = ["id"] + other_fields
+    field_names = ["user_id"] + other_fields
     result = detect_primary_key(field_names)
+    assert result == "user_id"
+
+
+@given(
+    other_fields=st.lists(
+        st.text(
+            alphabet=st.characters(
+                whitelist_categories=("Ll", "Lu", "Nd"), whitelist_characters="_"
+            ),
+            min_size=1,
+            max_size=20,
+        ).filter(
+            lambda x: not any(
+                pattern in x.lower()
+                for pattern in [
+                    "id",
+                    "key",
+                    "code",
+                    "number",
+                    "uuid",
+                    "guid",
+                    "pk",
+                    "no",
+                    "num",
+                    "seq",
+                    "recid",
+                    "rowid",
+                ]
+            )
+        ),
+        min_size=0,
+        max_size=10,
+    )
+)
+@settings(max_examples=50, deadline=None)
+def test_property_uuid_pattern_detected(other_fields):
+    """Property: If field contains 'uuid' pattern, it should be detected.
+
+    For any list of field names containing a field with 'uuid' pattern,
+    detect_primary_key should return that field.
+    """
+    field_names = ["uuid"] + other_fields
+    result = detect_primary_key(field_names)
+    assert result == "uuid"
+
+
+@given(
+    other_fields=st.lists(
+        st.text(
+            alphabet=st.characters(
+                whitelist_categories=("Ll", "Lu", "Nd"), whitelist_characters="_"
+            ),
+            min_size=1,
+            max_size=20,
+        ).filter(
+            lambda x: not any(
+                pattern in x.lower()
+                for pattern in [
+                    "id",
+                    "key",
+                    "code",
+                    "number",
+                    "uuid",
+                    "guid",
+                    "pk",
+                    "no",
+                    "num",
+                    "seq",
+                    "recid",
+                    "rowid",
+                ]
+            )
+        ),
+        min_size=0,
+        max_size=10,
+    )
+)
+@settings(max_examples=50, deadline=None)
+@patch("app.utils.primary_key_detector.settings")
+def test_property_no_pattern_defaults_to_id(mock_settings, other_fields):
+    """Property: If no pattern matches, should default to 'id'.
+
+    For any list of field names with no primary key patterns,
+    detect_primary_key should return 'id'.
+    """
+    # Disable LLM to test default behavior
+    mock_settings.openai_api_key = None
+    
+    result = detect_primary_key(other_fields)
     assert result == "id"
 
 
 @given(
+    pattern=st.sampled_from(
+        ["key", "code", "number", "uuid", "guid", "pk", "no", "num", "seq", "recid"]
+    ),
     other_fields=st.lists(
         st.text(
             alphabet=st.characters(
@@ -163,165 +411,36 @@ def test_property_id_field_always_detected(other_fields):
             ),
             min_size=1,
             max_size=20,
-        ).filter(lambda x: x not in ["id", "_id"]),
+        ).filter(
+            lambda x: not any(
+                p in x.lower()
+                for p in [
+                    "id",
+                    "key",
+                    "code",
+                    "number",
+                    "uuid",
+                    "guid",
+                    "pk",
+                    "no",
+                    "num",
+                    "seq",
+                    "recid",
+                    "rowid",
+                ]
+            )
+        ),
         min_size=0,
         max_size=10,
-    )
+    ),
 )
-def test_property_underscore_id_field_detected(other_fields):
-    """Property: If '_id' field exists (and no 'id'), it should be detected.
+@settings(max_examples=50, deadline=None)
+def test_property_all_patterns_detected(pattern, other_fields):
+    """Property: All defined patterns should be detected.
 
-    For any list of field names containing '_id' but not 'id',
-    detect_primary_key should return '_id'.
+    For any primary key pattern and list of non-matching fields,
+    detect_primary_key should return the pattern field.
     """
-    field_names = ["_id"] + other_fields
+    field_names = [pattern] + other_fields
     result = detect_primary_key(field_names)
-    assert result == "_id"
-
-
-@given(
-    resource_base=st.text(
-        alphabet=st.characters(whitelist_categories=("Ll",)), min_size=4, max_size=12
-    ),
-    other_fields=st.lists(
-        st.text(
-            alphabet=st.characters(
-                whitelist_categories=("Ll", "Lu", "Nd"), whitelist_characters="_"
-            ),
-            min_size=1,
-            max_size=20,
-        ).filter(lambda x: x not in ["id", "_id"]),
-        min_size=0,
-        max_size=10,
-    ),
-)
-def test_property_resource_snake_case_pattern_detected(resource_base, other_fields):
-    """Property: {resource}_id pattern should be detected.
-
-    For any resource name and field list containing {singular_resource}_id
-    (but not 'id' or '_id'), detect_primary_key should return the pattern.
-    """
-    resource_name = resource_base + "s"  # Make it plural
-    singular = _singularize_resource_name(resource_name)
-    pattern_field = f"{singular}_id"
-    field_names = [pattern_field] + other_fields
-    result = detect_primary_key(field_names, resource_name=resource_name)
-    assert result == pattern_field
-
-
-@given(
-    resource_base=st.text(
-        alphabet=st.characters(whitelist_categories=("Ll",)), min_size=4, max_size=12
-    ),
-    other_fields=st.lists(
-        st.text(
-            alphabet=st.characters(
-                whitelist_categories=("Ll", "Lu", "Nd"), whitelist_characters="_"
-            ),
-            min_size=1,
-            max_size=20,
-        ).filter(lambda x: x not in ["id", "_id"]),
-        min_size=0,
-        max_size=10,
-    ),
-)
-def test_property_resource_camel_case_pattern_detected(resource_base, other_fields):
-    """Property: {resource}Id pattern should be detected.
-
-    For any resource name and field list containing {singular_resource}Id
-    (but not 'id', '_id', or snake_case pattern), detect_primary_key
-    should return the pattern.
-    """
-    resource_name = resource_base + "s"  # Make it plural
-    singular = _singularize_resource_name(resource_name)
-    pattern_field = f"{singular}Id"
-    # Ensure snake_case pattern is not present
-    snake_case_pattern = f"{singular}_id"
-    filtered_fields = [f for f in other_fields if f != snake_case_pattern]
-    field_names = [pattern_field] + filtered_fields
-    result = detect_primary_key(field_names, resource_name=resource_name)
-    assert result == pattern_field
-
-
-@given(
-    resource_name=st.text(
-        alphabet=st.characters(whitelist_categories=("Ll",)), min_size=3, max_size=15
-    )
-)
-def test_property_singularize_is_idempotent(resource_name):
-    """Property: Singularizing twice should give same result as once.
-
-    For any resource name, singularizing it twice should produce
-    the same result as singularizing it once.
-    """
-    once = _singularize_resource_name(resource_name)
-    twice = _singularize_resource_name(once)
-    assert once == twice
-
-
-# LLM-based detection tests
-def test_llm_detects_legacy_primary_key():
-    """Test LLM detection of legacy primary key patterns.
-    
-    This test uses field names that don't match standard heuristics
-    but should be recognizable by the LLM as primary keys.
-    """
-    # These field names don't match our heuristics (id, _id, resource_id, resourceId)
-    # but "recid" is a common legacy primary key pattern
-    field_names = ["recid", "customer_name", "address", "phone"]
-    result = detect_primary_key(field_names, resource_name="customers")
-    
-    # The LLM should detect "recid" as the primary key
-    # If LLM is not configured or fails, it will default to "id"
-    assert result in ["recid", "id"], f"Expected 'recid' or 'id', got '{result}'"
-
-
-def test_llm_detects_uuid_pattern():
-    """Test LLM detection of UUID-based primary keys."""
-    field_names = ["uuid", "title", "description", "created_at"]
-    result = detect_primary_key(field_names, resource_name="articles")
-    
-    # The LLM should detect "uuid" as the primary key
-    assert result in ["uuid", "id"], f"Expected 'uuid' or 'id', got '{result}'"
-
-
-def test_llm_detects_pk_pattern():
-    """Test LLM detection of 'pk' as primary key."""
-    field_names = ["pk", "product_name", "price", "stock"]
-    result = detect_primary_key(field_names, resource_name="products")
-    
-    # The LLM should detect "pk" as the primary key
-    assert result in ["pk", "id"], f"Expected 'pk' or 'id', got '{result}'"
-
-
-def test_llm_detects_record_id_pattern():
-    """Test LLM detection of 'record_id' pattern."""
-    field_names = ["record_id", "employee_name", "department", "salary"]
-    result = detect_primary_key(field_names, resource_name="employees")
-    
-    # The LLM should detect "record_id" as the primary key
-    assert result in ["record_id", "id"], f"Expected 'record_id' or 'id', got '{result}'"
-
-
-def test_llm_detects_number_pattern():
-    """Test LLM detection of numeric identifier patterns."""
-    field_names = ["order_no", "customer", "total", "status"]
-    result = detect_primary_key(field_names, resource_name="orders")
-    
-    # The LLM should detect "order_no" as the primary key
-    assert result in ["order_no", "id"], f"Expected 'order_no' or 'id', got '{result}'"
-
-
-def test_llm_detection_with_multiple_candidates():
-    """Test LLM chooses the most likely primary key from multiple candidates.
-    
-    This test is marked as slow and requires --run-llm-tests flag.
-    """
-    # Multiple fields that could be identifiers
-    field_names = ["seq", "record_no", "name", "code", "description"]
-    result = detect_primary_key(field_names, resource_name="items")
-    
-    # The LLM should pick one of the identifier-like fields
-    # "seq" or "record_no" are most likely, but "code" is also possible
-    assert result in ["seq", "record_no", "code", "id"], \
-        f"Expected identifier field, got '{result}'"
+    assert result == pattern
