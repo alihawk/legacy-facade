@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Routes, Route, useNavigate, useParams } from "react-router-dom"
+import { Download, Loader2 } from "lucide-react"
 import Sidebar from "@/components/Sidebar"
 import Dashboard from "@/components/Dashboard"
 import ResourceList from "@/components/ResourceList"
@@ -9,6 +10,8 @@ import ResourceDetail from "@/components/ResourceDetail"
 import ResourceForm from "@/components/ResourceForm"
 import ResourceActivity from "@/components/ResourceActivity"
 import ResourceSettings from "@/components/ResourceSettings"
+import { Button } from "@/components/ui/button"
+import { projectGenerator } from "@/services/ProjectGenerator"
 
 interface ResourceSchema {
   name: string
@@ -22,6 +25,7 @@ interface ResourceSchema {
 export default function PortalPage() {
   const [resources, setResources] = useState<ResourceSchema[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [isDownloading, setIsDownloading] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -33,6 +37,50 @@ export default function PortalPage() {
       navigate("/")
     }
   }, [navigate])
+
+  const handleDownload = async () => {
+    setIsDownloading(true)
+    try {
+      // Get schemas from localStorage
+      const stored = localStorage.getItem("app-schema")
+      if (!stored) {
+        alert("No schema found. Please analyze an API first.")
+        return
+      }
+
+      const parsed = JSON.parse(stored)
+      const schemas = parsed.resources || []
+
+      if (schemas.length === 0) {
+        alert("No resources found in schema.")
+        return
+      }
+
+      // Get baseUrl from localStorage or use default
+      const baseUrl = localStorage.getItem("api-base-url") || "http://localhost:8000"
+
+      // Generate the project ZIP
+      const blob = await projectGenerator.generate(schemas, baseUrl)
+
+      // Create download link and trigger download
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `admin-portal-${Date.now()}.zip`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      // Show success message
+      alert("✅ Project downloaded successfully!")
+    } catch (error) {
+      console.error("Failed to generate project:", error)
+      alert(`❌ Failed to generate project: ${error instanceof Error ? error.message : "Unknown error"}`)
+    } finally {
+      setIsDownloading(false)
+    }
+  }
 
   if (resources.length === 0) {
     return (
@@ -50,6 +98,33 @@ export default function PortalPage() {
       <Sidebar resources={resources} open={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
 
       <main className={`transition-all duration-300 ${sidebarOpen ? "ml-64" : "ml-16"}`}>
+        {/* Header with Download Button */}
+        <div className="bg-white border-b border-gray-200 px-8 py-4 sticky top-0 z-30 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">Admin Portal</h1>
+              <p className="text-sm text-gray-500">{resources.length} resources loaded</p>
+            </div>
+            <Button
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg"
+            >
+              {isDownloading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Project
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
         <div className="p-8">
           <Routes>
             <Route index element={<Dashboard resources={resources} />} />
