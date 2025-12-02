@@ -10,6 +10,10 @@ import { Search, Eye, Plus } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { BulkActionsBar } from "@/components/BulkActionsBar"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
+import { FieldRenderer } from "@/components/FieldRenderer"
+import { exportToCSV } from "@/utils/csvExport"
 import { apiService } from "@/services/api"
 import type { ResourceSchema } from "@/types"
 
@@ -21,6 +25,8 @@ export default function ResourceList({ resource }: ResourceListProps) {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -40,6 +46,51 @@ export default function ResourceList({ resource }: ResourceListProps) {
     }
   }
 
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredData.length && filteredData.length > 0) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredData.map(item => String(item[resource.primaryKey]))))
+    }
+  }
+
+  const toggleSelectItem = (id: string) => {
+    const newSelected = new Set(selectedIds)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedIds(newSelected)
+  }
+
+  const handleBulkDelete = async () => {
+    try {
+      for (const id of selectedIds) {
+        await apiService.delete(resource.name, id)
+      }
+      setSelectedIds(new Set())
+      setShowDeleteConfirm(false)
+      fetchData()
+    } catch (error) {
+      console.error("Failed to delete:", error)
+      alert("Failed to delete some items")
+    }
+  }
+
+  const handleExport = () => {
+    const itemsToExport = selectedIds.size > 0
+      ? data.filter(item => selectedIds.has(String(item[resource.primaryKey])))
+      : data
+    
+    const columns = resource.fields.map(f => ({
+      key: f.name,
+      label: f.displayName
+    }))
+    
+    exportToCSV(itemsToExport, resource.name, columns)
+  }
+
   const visibleFields = resource.fields.filter((f) => f.name !== resource.primaryKey).slice(0, 5)
 
   const filteredData = data.filter((item) => {
@@ -49,21 +100,6 @@ export default function ResourceList({ resource }: ResourceListProps) {
       return value.includes(searchTerm.toLowerCase())
     })
   })
-
-  const formatValue = (value: any, field: any): string => {
-    if (value === null || value === undefined) return "-"
-    switch (field.type) {
-      case "date":
-        return new Date(value).toLocaleDateString()
-      case "boolean":
-        return value ? "Yes" : "No"
-      case "number":
-        return Number(value).toLocaleString()
-      default:
-        const str = String(value)
-        return str.length > 50 ? str.substring(0, 50) + "..." : str
-    }
-  }
 
   if (loading) {
     return <div className="flex items-center justify-center h-64">Loading...</div>
@@ -95,6 +131,14 @@ export default function ResourceList({ resource }: ResourceListProps) {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === filteredData.length && filteredData.length > 0}
+                  onChange={toggleSelectAll}
+                  className="w-4 h-4 rounded border-gray-300"
+                />
+              </TableHead>
               <TableHead>ID</TableHead>
               {visibleFields.map((field) => (
                 <TableHead key={field.name}>{field.displayName}</TableHead>
@@ -105,39 +149,74 @@ export default function ResourceList({ resource }: ResourceListProps) {
           <TableBody>
             {filteredData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={visibleFields.length + 2} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={visibleFields.length + 3} className="text-center py-8 text-gray-500">
                   No {resource.displayName.toLowerCase()} found
                 </TableCell>
               </TableRow>
             ) : (
-              filteredData.map((item) => (
-                <TableRow
-                  key={item[resource.primaryKey]}
-                  className="cursor-pointer hover:bg-gray-50"
-                  onClick={() => navigate(\`/\${resource.name}/\${item[resource.primaryKey]}\`)}
-                >
-                  <TableCell className="font-mono">#{item[resource.primaryKey]}</TableCell>
-                  {visibleFields.map((field) => (
-                    <TableCell key={field.name}>{formatValue(item[field.name], field)}</TableCell>
-                  ))}
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        navigate(\`/\${resource.name}/\${item[resource.primaryKey]}\`)
-                      }}
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
+              filteredData.map((item) => {
+                const itemId = String(item[resource.primaryKey])
+                const isSelected = selectedIds.has(itemId)
+                return (
+                  <TableRow
+                    key={item[resource.primaryKey]}
+                    className={\`cursor-pointer hover:bg-gray-50 \${isSelected ? 'bg-blue-50' : ''}\`}
+                    onClick={() => navigate(\`/\${resource.name}/\${item[resource.primaryKey]}\`)}
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectItem(itemId)}
+                        className="w-4 h-4 rounded border-gray-300"
+                      />
+                    </TableCell>
+                    <TableCell className="font-mono">#{item[resource.primaryKey]}</TableCell>
+                    {visibleFields.map((field) => (
+                      <TableCell key={field.name}>
+                        <FieldRenderer 
+                          value={item[field.name]} 
+                          type={field.type} 
+                          mode="list" 
+                        />
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(\`/\${resource.name}/\${item[resource.primaryKey]}\`)
+                        }}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                )
+              })
             )}
           </TableBody>
         </Table>
       </div>
+
+      <BulkActionsBar
+        selectedCount={selectedIds.size}
+        onDelete={() => setShowDeleteConfirm(true)}
+        onExport={handleExport}
+        onClearSelection={() => setSelectedIds(new Set())}
+      />
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete Items"
+        message={\`Are you sure you want to delete \${selectedIds.size} item(s)? This action cannot be undone.\`}
+        confirmText="Delete"
+        variant="danger"
+        onConfirm={handleBulkDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   )
 }`
@@ -146,9 +225,10 @@ export default function ResourceList({ resource }: ResourceListProps) {
 export const resourceDetailTemplate = (): string => {
   return `import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { ArrowLeft, Edit, Trash2 } from "lucide-react"
+import { ArrowLeft, Edit, Trash2, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { FieldRenderer } from "@/components/FieldRenderer"
 import { apiService } from "@/services/api"
 import type { ResourceSchema } from "@/types"
 
@@ -161,6 +241,7 @@ interface ResourceDetailProps {
 export default function ResourceDetail({ resource, id, onEdit }: ResourceDetailProps) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [copiedField, setCopiedField] = useState<string | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -192,17 +273,13 @@ export default function ResourceDetail({ resource, id, onEdit }: ResourceDetailP
     }
   }
 
-  const formatValue = (value: any, field: any): string => {
-    if (value === null || value === undefined) return "-"
-    switch (field.type) {
-      case "date":
-        return new Date(value).toLocaleString()
-      case "boolean":
-        return value ? "Yes" : "No"
-      case "number":
-        return Number(value).toLocaleString()
-      default:
-        return String(value)
+  const handleCopy = async (fieldName: string, value: any) => {
+    try {
+      await navigator.clipboard.writeText(String(value))
+      setCopiedField(fieldName)
+      setTimeout(() => setCopiedField(null), 2000)
+    } catch (error) {
+      console.error("Failed to copy:", error)
     }
   }
 
@@ -247,7 +324,26 @@ export default function ResourceDetail({ resource, id, onEdit }: ResourceDetailP
             {resource.fields.map((field) => (
               <div key={field.name}>
                 <label className="text-sm font-medium text-gray-500">{field.displayName}</label>
-                <div className="mt-1 text-gray-900">{formatValue(data[field.name], field)}</div>
+                <div className="mt-1 text-gray-900 flex items-center gap-2">
+                  <FieldRenderer 
+                    value={data[field.name]} 
+                    type={field.type} 
+                    mode="detail" 
+                  />
+                  {['string', 'email', 'url'].includes(field.type) && data[field.name] && (
+                    <button
+                      onClick={() => handleCopy(field.name, data[field.name])}
+                      className="p-1 hover:bg-gray-100 rounded transition-colors"
+                      title="Copy to clipboard"
+                    >
+                      {copiedField === field.name ? (
+                        <span className="text-xs text-green-600 font-medium">Copied!</span>
+                      ) : (
+                        <Copy className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -262,8 +358,8 @@ export const resourceFormTemplate = (): string => {
   return `import { useState, useEffect } from "react"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { FieldRenderer } from "@/components/FieldRenderer"
 import { apiService } from "@/services/api"
 import type { ResourceSchema } from "@/types"
 
@@ -350,32 +446,13 @@ export default function ResourceForm({ resource, mode, id, onSuccess, onCancel }
                   <label className="text-sm font-medium text-gray-700 block mb-2">
                     {field.displayName}
                   </label>
-                  {field.type === "boolean" ? (
-                    <input
-                      type="checkbox"
-                      checked={formData[field.name] || false}
-                      onChange={(e) => handleChange(field.name, e.target.checked)}
-                      className="h-4 w-4"
-                    />
-                  ) : field.type === "number" ? (
-                    <Input
-                      type="number"
-                      value={formData[field.name] || ""}
-                      onChange={(e) => handleChange(field.name, Number(e.target.value))}
-                    />
-                  ) : field.type === "date" ? (
-                    <Input
-                      type="date"
-                      value={formData[field.name] ? new Date(formData[field.name]).toISOString().split('T')[0] : ""}
-                      onChange={(e) => handleChange(field.name, e.target.value)}
-                    />
-                  ) : (
-                    <Input
-                      type="text"
-                      value={formData[field.name] || ""}
-                      onChange={(e) => handleChange(field.name, e.target.value)}
-                    />
-                  )}
+                  <FieldRenderer
+                    value={formData[field.name]}
+                    type={field.type}
+                    mode="form"
+                    name={field.name}
+                    onChange={(value) => handleChange(field.name, value)}
+                  />
                 </div>
               ))}
             </div>

@@ -18,9 +18,10 @@ interface ActivityEntry {
 
 interface ResourceActivityProps {
   resource: any
+  isSpooky?: boolean
 }
 
-export default function ResourceActivity({ resource }: ResourceActivityProps) {
+export default function ResourceActivity({ resource, isSpooky = false }: ResourceActivityProps) {
   const [data, setData] = useState<ActivityEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -130,7 +131,7 @@ export default function ResourceActivity({ resource }: ResourceActivityProps) {
 
   const getActionBadge = (action: string) => {
     const variants = {
-      created: "bg-gradient-to-r from-emerald-100 to-emerald-50 text-emerald-700 border-emerald-200",
+      created: "bg-gradient-to-r from-emerald-100 to-emerald-50 text-teal-700 border-teal-200",
       updated: "bg-gradient-to-r from-blue-100 to-blue-50 text-blue-700 border-blue-200",
       deleted: "bg-gradient-to-r from-red-100 to-red-50 text-red-700 border-red-200",
     }
@@ -171,26 +172,26 @@ export default function ResourceActivity({ resource }: ResourceActivityProps) {
           <Button
             variant="outline"
             onClick={() => navigate(`/portal/${resource.name}`)}
-            className="border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl"
+            className={`rounded-xl ${isSpooky ? 'border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to {resource.displayName}
           </Button>
           <div>
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-50 rounded-xl">
-                <Clock className="w-5 h-5 text-amber-600" />
+              <div className={`p-2 rounded-xl ${isSpooky ? 'bg-cyan-500/20' : 'bg-gradient-to-br from-amber-100 to-orange-50'}`}>
+                <Clock className={`w-5 h-5 ${isSpooky ? 'text-cyan-400' : 'text-amber-600'}`} />
               </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                Activity Log
+              <h1 className={`text-2xl font-bold ${isSpooky ? 'text-cyan-400' : 'bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent'}`}>
+                {isSpooky ? '💀 ' : ''}Activity Log
               </h1>
             </div>
-            <p className="text-gray-500 mt-2 ml-12">Recent activity on {resource.displayName.toLowerCase()}</p>
+            <p className={`mt-2 ml-12 ${isSpooky ? 'text-gray-400' : 'text-gray-500'}`}>Recent activity on {resource.displayName.toLowerCase()}</p>
           </div>
         </div>
         <Button
           onClick={handleExport}
-          className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white shadow-lg shadow-amber-500/25 hover:shadow-xl transition-all rounded-xl"
+          className={`text-white shadow-lg hover:shadow-xl transition-all rounded-xl ${isSpooky ? 'bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 shadow-cyan-500/25' : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 shadow-amber-500/25'}`}
         >
           <Download className="w-4 h-4 mr-2" />
           Export Log
@@ -198,19 +199,19 @@ export default function ResourceActivity({ resource }: ResourceActivityProps) {
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="flex gap-4 bg-white p-5 rounded-2xl border-0 shadow-lg shadow-gray-200/50">
+      <div className={`flex gap-4 p-5 rounded-2xl border-0 shadow-lg ${isSpooky ? 'bg-slate-900 border border-cyan-500/30 shadow-cyan-500/10' : 'bg-white shadow-gray-200/50'}`}>
         <div className="relative flex-1">
           <User className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" />
           <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search by user, details, or ID..."
-            className="pl-12 h-12 bg-gray-50 border-0 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 transition-all"
+            className={`pl-12 h-12 border-0 rounded-xl transition-all ${isSpooky ? 'bg-slate-800 text-cyan-400 placeholder:text-gray-500 focus:bg-slate-700 focus:ring-2 focus:ring-cyan-500/20' : 'bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-amber-500/20'}`}
           />
         </div>
         <Select value={filterAction} onValueChange={setFilterAction}>
-          <SelectTrigger className="w-48 h-12 bg-gray-50 border-0 rounded-xl">
-            <Filter className="w-4 h-4 mr-2 text-gray-400" />
+          <SelectTrigger className={`w-48 h-12 border-0 rounded-xl ${isSpooky ? 'bg-slate-800 text-cyan-400' : 'bg-gray-50 text-gray-900'}`}>
+            <Filter className={`w-4 h-4 mr-2 ${isSpooky ? 'text-cyan-400' : 'text-gray-400'}`} />
             <SelectValue placeholder="All actions" />
           </SelectTrigger>
           <SelectContent className="rounded-xl">
@@ -223,12 +224,12 @@ export default function ResourceActivity({ resource }: ResourceActivityProps) {
       </div>
 
       {/* Activity Table */}
-      <div className="bg-white border-0 rounded-2xl shadow-lg shadow-gray-200/50 overflow-hidden">
+      <div className={`border-0 rounded-2xl shadow-lg overflow-hidden ${isSpooky ? 'bg-slate-900 border border-cyan-500/30 shadow-cyan-500/10' : 'bg-white shadow-gray-200/50'}`}>
         <Table>
           <TableHeader>
-            <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-gray-100">
+            <TableRow className={`${isSpooky ? 'bg-slate-800 border-cyan-500/20' : 'bg-gradient-to-r from-gray-50 to-gray-100/50 border-gray-100'}`}>
               <TableHead
-                className="text-gray-600 font-semibold py-4 cursor-pointer hover:text-amber-600 transition-colors select-none"
+                className={`font-semibold py-4 cursor-pointer transition-colors select-none ${isSpooky ? 'text-cyan-400 hover:text-cyan-300' : 'text-gray-600 hover:text-amber-600'}`}
                 onClick={() => handleSort("timestamp")}
               >
                 <div className="flex items-center gap-2">
@@ -236,9 +237,9 @@ export default function ResourceActivity({ resource }: ResourceActivityProps) {
                   Time
                   {sortField === "timestamp" ? (
                     sortDirection === "asc" ? (
-                      <ArrowUp className="w-4 h-4 text-amber-600" />
+                      <ArrowUp className={`w-4 h-4 ${isSpooky ? 'text-cyan-400' : 'text-amber-600'}`} />
                     ) : (
-                      <ArrowDown className="w-4 h-4 text-amber-600" />
+                      <ArrowDown className={`w-4 h-4 ${isSpooky ? 'text-cyan-400' : 'text-amber-600'}`} />
                     )
                   ) : (
                     <ArrowUpDown className="w-4 h-4 opacity-30" />
@@ -246,16 +247,16 @@ export default function ResourceActivity({ resource }: ResourceActivityProps) {
                 </div>
               </TableHead>
               <TableHead
-                className="text-gray-600 font-semibold py-4 cursor-pointer hover:text-amber-600 transition-colors select-none"
+                className={`font-semibold py-4 cursor-pointer transition-colors select-none ${isSpooky ? 'text-cyan-400 hover:text-cyan-300' : 'text-gray-600 hover:text-amber-600'}`}
                 onClick={() => handleSort("action")}
               >
                 <div className="flex items-center gap-2">
                   Action
                   {sortField === "action" ? (
                     sortDirection === "asc" ? (
-                      <ArrowUp className="w-4 h-4 text-amber-600" />
+                      <ArrowUp className={`w-4 h-4 ${isSpooky ? 'text-cyan-400' : 'text-amber-600'}`} />
                     ) : (
-                      <ArrowDown className="w-4 h-4 text-amber-600" />
+                      <ArrowDown className={`w-4 h-4 ${isSpooky ? 'text-cyan-400' : 'text-amber-600'}`} />
                     )
                   ) : (
                     <ArrowUpDown className="w-4 h-4 opacity-30" />
@@ -263,7 +264,7 @@ export default function ResourceActivity({ resource }: ResourceActivityProps) {
                 </div>
               </TableHead>
               <TableHead
-                className="text-gray-600 font-semibold py-4 cursor-pointer hover:text-amber-600 transition-colors select-none"
+                className={`font-semibold py-4 cursor-pointer transition-colors select-none ${isSpooky ? 'text-cyan-400 hover:text-cyan-300' : 'text-gray-600 hover:text-amber-600'}`}
                 onClick={() => handleSort("user")}
               >
                 <div className="flex items-center gap-2">
@@ -271,9 +272,9 @@ export default function ResourceActivity({ resource }: ResourceActivityProps) {
                   User
                   {sortField === "user" ? (
                     sortDirection === "asc" ? (
-                      <ArrowUp className="w-4 h-4 text-amber-600" />
+                      <ArrowUp className={`w-4 h-4 ${isSpooky ? 'text-cyan-400' : 'text-amber-600'}`} />
                     ) : (
-                      <ArrowDown className="w-4 h-4 text-amber-600" />
+                      <ArrowDown className={`w-4 h-4 ${isSpooky ? 'text-cyan-400' : 'text-amber-600'}`} />
                     )
                   ) : (
                     <ArrowUpDown className="w-4 h-4 opacity-30" />
@@ -281,29 +282,29 @@ export default function ResourceActivity({ resource }: ResourceActivityProps) {
                 </div>
               </TableHead>
               <TableHead
-                className="text-gray-600 font-semibold py-4 cursor-pointer hover:text-amber-600 transition-colors select-none"
+                className={`font-semibold py-4 cursor-pointer transition-colors select-none ${isSpooky ? 'text-cyan-400 hover:text-cyan-300' : 'text-gray-600 hover:text-amber-600'}`}
                 onClick={() => handleSort("resourceId")}
               >
                 <div className="flex items-center gap-2">
                   Resource ID
                   {sortField === "resourceId" ? (
                     sortDirection === "asc" ? (
-                      <ArrowUp className="w-4 h-4 text-amber-600" />
+                      <ArrowUp className={`w-4 h-4 ${isSpooky ? 'text-cyan-400' : 'text-amber-600'}`} />
                     ) : (
-                      <ArrowDown className="w-4 h-4 text-amber-600" />
+                      <ArrowDown className={`w-4 h-4 ${isSpooky ? 'text-cyan-400' : 'text-amber-600'}`} />
                     )
                   ) : (
                     <ArrowUpDown className="w-4 h-4 opacity-30" />
                   )}
                 </div>
               </TableHead>
-              <TableHead className="text-gray-600 font-semibold py-4">Details</TableHead>
+              <TableHead className={`font-semibold py-4 ${isSpooky ? 'text-cyan-400' : 'text-gray-600'}`}>Details</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-12 text-gray-500">
+                <TableCell colSpan={5} className={`text-center py-12 ${isSpooky ? 'text-gray-400' : 'text-gray-500'}`}>
                   {searchTerm || filterAction !== "all"
                     ? "No activity found matching your filters"
                     : "No activity recorded yet"}
@@ -313,20 +314,20 @@ export default function ResourceActivity({ resource }: ResourceActivityProps) {
               paginatedData.map((entry, index) => (
                 <TableRow
                   key={`${entry.timestamp}-${index}`}
-                  className="border-gray-100 hover:bg-gradient-to-r hover:from-amber-50/50 hover:to-orange-50/30 transition-all duration-200"
+                  className={`transition-all duration-200 ${isSpooky ? 'border-cyan-500/20 hover:bg-cyan-500/5' : 'border-gray-100 hover:bg-gradient-to-r hover:from-amber-50/50 hover:to-orange-50/30'}`}
                   style={{ animationDelay: `${index * 0.03}s` }}
                 >
-                  <TableCell className="py-4 text-gray-600 font-medium">{formatTimestamp(entry.timestamp)}</TableCell>
+                  <TableCell className={`py-4 font-medium ${isSpooky ? 'text-cyan-400' : 'text-gray-600'}`}>{formatTimestamp(entry.timestamp)}</TableCell>
                   <TableCell className="py-4">
                     <Badge className={`${getActionBadge(entry.action)} border capitalize`}>{entry.action}</Badge>
                   </TableCell>
-                  <TableCell className="py-4 text-gray-700">{entry.user}</TableCell>
+                  <TableCell className={`py-4 ${isSpooky ? 'text-cyan-300' : 'text-gray-700'}`}>{entry.user}</TableCell>
                   <TableCell className="py-4">
-                    <span className="font-mono font-semibold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                    <span className={`font-mono font-semibold ${isSpooky ? 'text-cyan-400' : 'bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent'}`}>
                       #{entry.resourceId}
                     </span>
                   </TableCell>
-                  <TableCell className="py-4 text-gray-600">{entry.details || "-"}</TableCell>
+                  <TableCell className={`py-4 ${isSpooky ? 'text-gray-400' : 'text-gray-600'}`}>{entry.details || "-"}</TableCell>
                 </TableRow>
               ))
             )}
@@ -335,13 +336,13 @@ export default function ResourceActivity({ resource }: ResourceActivityProps) {
       </div>
 
       {/* Pagination Footer */}
-      <div className="flex items-center justify-between bg-white border-0 rounded-2xl px-5 py-4 shadow-lg shadow-gray-200/50">
-        <div className="text-sm text-gray-500">
-          Page <span className="font-semibold text-gray-900">{currentSafePage}</span> of{" "}
-          <span className="font-semibold text-gray-900">{totalPages}</span> • Showing{" "}
-          <span className="font-semibold text-gray-900">{sortedData.length === 0 ? 0 : startIndex + 1}</span> -{" "}
-          <span className="font-semibold text-gray-900">{Math.min(endIndex, sortedData.length)}</span> of{" "}
-          <span className="font-semibold text-gray-900">{sortedData.length}</span> entries
+      <div className={`flex items-center justify-between border-0 rounded-2xl px-5 py-4 shadow-lg ${isSpooky ? 'bg-slate-900 border border-cyan-500/30 shadow-cyan-500/10' : 'bg-white shadow-gray-200/50'}`}>
+        <div className={`text-sm ${isSpooky ? 'text-gray-400' : 'text-gray-500'}`}>
+          Page <span className={`font-semibold ${isSpooky ? 'text-cyan-400' : 'text-gray-900'}`}>{currentSafePage}</span> of{" "}
+          <span className={`font-semibold ${isSpooky ? 'text-cyan-400' : 'text-gray-900'}`}>{totalPages}</span> • Showing{" "}
+          <span className={`font-semibold ${isSpooky ? 'text-cyan-400' : 'text-gray-900'}`}>{sortedData.length === 0 ? 0 : startIndex + 1}</span> -{" "}
+          <span className={`font-semibold ${isSpooky ? 'text-cyan-400' : 'text-gray-900'}`}>{Math.min(endIndex, sortedData.length)}</span> of{" "}
+          <span className={`font-semibold ${isSpooky ? 'text-cyan-400' : 'text-gray-900'}`}>{sortedData.length}</span> entries
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -349,7 +350,7 @@ export default function ResourceActivity({ resource }: ResourceActivityProps) {
             size="sm"
             disabled={currentSafePage === 1}
             onClick={() => setCurrentPage((p) => p - 1)}
-            className="border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 rounded-xl"
+            className={`disabled:opacity-30 rounded-xl ${isSpooky ? 'border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 bg-slate-800' : 'border-gray-200 text-gray-600 hover:bg-gray-50 bg-white'}`}
           >
             Previous
           </Button>
@@ -373,8 +374,12 @@ export default function ResourceActivity({ resource }: ResourceActivityProps) {
                   onClick={() => setCurrentPage(pageNum)}
                   className={
                     currentSafePage === pageNum
-                      ? "bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white border-0 rounded-xl"
-                      : "border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl"
+                      ? isSpooky 
+                        ? "bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white border-0 rounded-xl"
+                        : "bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white border-0 rounded-xl"
+                      : isSpooky
+                        ? "border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 bg-slate-800 rounded-xl"
+                        : "border-gray-200 text-gray-600 hover:bg-gray-50 bg-white rounded-xl"
                   }
                 >
                   {pageNum}
@@ -387,7 +392,7 @@ export default function ResourceActivity({ resource }: ResourceActivityProps) {
             size="sm"
             disabled={currentSafePage === totalPages}
             onClick={() => setCurrentPage((p) => p + 1)}
-            className="border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 rounded-xl"
+            className={`disabled:opacity-30 rounded-xl ${isSpooky ? 'border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 bg-slate-800' : 'border-gray-200 text-gray-600 hover:bg-gray-50 bg-white'}`}
           >
             Next
           </Button>

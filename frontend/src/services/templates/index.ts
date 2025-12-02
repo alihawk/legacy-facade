@@ -35,7 +35,19 @@ export {
   tableTemplate,
   dialogTemplate,
   selectTemplate,
+  // Enhanced UI components
+  statsCardTemplate,
+  simpleBarChartTemplate,
+  recentActivityTemplate,
+  bulkActionsBarTemplate,
+  confirmDialogTemplate,
+  fieldRendererTemplate,
 } from './components'
+
+// Utility templates
+export {
+  csvExportTemplate,
+} from './utils'
 
 // Portal component templates
 export {

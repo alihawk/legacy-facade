@@ -2,20 +2,26 @@
 
 ## Introduction
 
-The Smart Proxy Layer is the runtime bridge between the generated frontend UI and legacy backend APIs. After the API Analyzer infers resource schemas, the Smart Proxy uses those schemas plus minimal user configuration to forward CRUD operations from the frontend to the legacy backend. It solves CORS issues, handles authentication complexity, and normalizes responses.
+The Smart Proxy Layer is the runtime bridge between the generated frontend UI and legacy backend APIs (both REST and SOAP). After the API Analyzer infers resource schemas, the Smart Proxy uses those schemas plus minimal user configuration to forward CRUD operations from the frontend to the legacy backend.
 
-The proxy operates on inferred REST conventions: from a single GET endpoint analysis, it proposes full CRUD operations (list, detail, create, update, delete) and attempts to call them using standard REST patterns. When operations don't exist on the legacy backend, the proxy returns normalized error messages.
+The proxy handles:
+- **REST APIs**: Direct HTTP requests with JSON payloads
+- **SOAP APIs**: XML envelope construction, SOAPAction headers, WSSE authentication, response parsing
 
 ## Glossary
 
 - **Smart Proxy**: The FastAPI service that forwards frontend CRUD requests to legacy backend APIs
-- **Proxy Configuration**: User-provided settings including baseUrl, auth credentials, and resource operation mappings
-- **Operation Mapping**: The translation from frontend operations (list, detail, create, update, delete) to backend HTTP calls
-- **Auth Mode**: Authentication strategy (none, bearer, apiKey, basic)
-- **Resource Config**: Per-resource settings defining how operations map to backend endpoints
-- **CORS Bypass**: The proxy acts as same-origin intermediary, eliminating browser CORS restrictions
-- **Error Normalization**: Converting backend errors (404, 500, HTML responses) into clean JSON error messages
-- **REST Heuristics**: Assumptions about standard REST patterns (GET /resource, POST /resource, PUT /resource/{id}, etc.)
+- **Proxy Configuration**: User-provided settings including baseUrl, apiType, auth credentials, and resource mappings
+- **API Type**: Either "rest" or "soap" - determines how requests are constructed and responses parsed
+- **Operation Mapping**: Translation from frontend operations (list, detail, create, update, delete) to backend calls
+- **Auth Mode**: Authentication strategy - "none", "bearer", "apiKey", "basic", or "wsse" (SOAP only)
+- **WSSE**: WS-Security - SOAP authentication standard using UsernameToken in XML header
+- **SOAPAction**: HTTP header required by SOAP services to identify the operation
+- **SOAP Envelope**: XML wrapper containing Header and Body elements per SOAP specification
+- **SOAP Fault**: SOAP error response format containing faultcode and faultstring
+- **Field Mapping**: Translation between legacy field names (e.g., "USR_NM") and normalized names (e.g., "user_name")
+- **Response Path**: JSON/XML path to extract data from nested responses (e.g., "Data.Users")
+- **REST Heuristics**: Assumptions about standard REST patterns for unconfigured operations
 
 ## Requirements
 
@@ -25,227 +31,333 @@ The proxy operates on inferred REST conventions: from a single GET endpoint anal
 
 #### Acceptance Criteria
 
-1. WHEN a user provides backend configuration with baseUrl and auth settings, THEN the system SHALL store this configuration for the session
-2. WHEN the configuration includes auth mode "bearer", THEN the system SHALL store the bearer token securely
-3. WHEN the configuration includes auth mode "apiKey", THEN the system SHALL store the API key header name and value
-4. WHEN the configuration includes auth mode "basic", THEN the system SHALL store the username and password
-5. WHEN the configuration includes resource operation mappings, THEN the system SHALL store the method and path for each operation
+1. WHEN a user provides backend configuration with baseUrl, apiType, and auth settings, THEN the system SHALL store this configuration to a JSON file
+2. WHEN the configuration includes apiType "rest", THEN the system SHALL store REST-specific settings
+3. WHEN the configuration includes apiType "soap", THEN the system SHALL store SOAP-specific settings including namespace
+4. WHEN the configuration includes auth mode "wsse", THEN the system SHALL store username and password for WS-Security
+5. WHEN the configuration includes field mappings for a resource, THEN the system SHALL store the normalized-to-legacy field name translations
+6. WHEN the server restarts, THEN the system SHALL reload configuration from the JSON file
 
-### Requirement 2: List Operation Proxying (GET /proxy/{resource})
+---
 
-**User Story:** As a frontend user, I want to fetch a list of resources, so that I can view all records in a table.
+### Requirement 2: REST List Operation (GET /proxy/{resource})
+
+**User Story:** As a frontend user, I want to fetch a list of resources from a REST API.
 
 #### Acceptance Criteria
 
-1. WHEN the frontend sends GET /proxy/{resource}, THEN the proxy SHALL look up the resource configuration
+1. WHEN the frontend sends GET /proxy/{resource} and apiType is "rest", THEN the proxy SHALL construct a REST request
 2. WHEN the resource has a "list" operation defined, THEN the proxy SHALL use that operation's method and path
-3. WHEN no "list" operation is defined, THEN the proxy SHALL use REST heuristic: GET {baseUrl}/{resource}
-4. WHEN the legacy backend returns a successful response, THEN the proxy SHALL forward the response body to the frontend
-5. WHEN the legacy backend returns an error, THEN the proxy SHALL normalize it to JSON format with status code and message
+3. WHEN no "list" operation is defined, THEN the proxy SHALL use REST heuristic: GET {baseUrl}/{endpoint}
+4. WHEN the response contains nested data (e.g., {Data: {Users: [...]}}), THEN the proxy SHALL unwrap it using responsePath
+5. WHEN field mappings are configured, THEN the proxy SHALL translate legacy field names to normalized names
+6. WHEN the legacy backend returns an error, THEN the proxy SHALL normalize it to JSON format
 
-### Requirement 3: Detail Operation Proxying (GET /proxy/{resource}/{id})
+---
 
-**User Story:** As a frontend user, I want to fetch a single resource by ID, so that I can view its details.
+### Requirement 3: REST Detail Operation (GET /proxy/{resource}/{id})
 
-#### Acceptance Criteria
-
-1. WHEN the frontend sends GET /proxy/{resource}/{id}, THEN the proxy SHALL look up the resource configuration
-2. WHEN the resource has a "detail" operation defined, THEN the proxy SHALL use that operation's method and path, replacing {id} placeholder
-3. WHEN no "detail" operation is defined, THEN the proxy SHALL use REST heuristic: GET {baseUrl}/{resource}/{id}
-4. WHEN the path template contains {id}, THEN the proxy SHALL replace it with the actual ID from the request
-5. WHEN the legacy backend returns a successful response, THEN the proxy SHALL forward the response body to the frontend
-
-### Requirement 4: Create Operation Proxying (POST /proxy/{resource})
-
-**User Story:** As a frontend user, I want to create a new resource, so that I can add records to the system.
+**User Story:** As a frontend user, I want to fetch a single resource by ID from a REST API.
 
 #### Acceptance Criteria
 
-1. WHEN the frontend sends POST /proxy/{resource} with JSON body, THEN the proxy SHALL look up the resource configuration
-2. WHEN the resource has a "create" operation defined, THEN the proxy SHALL use that operation's method and path
-3. WHEN no "create" operation is defined, THEN the proxy SHALL use REST heuristic: POST {baseUrl}/{resource}
-4. WHEN the request includes a JSON body, THEN the proxy SHALL forward it to the legacy backend unchanged
-5. WHEN the legacy backend returns a successful response (200, 201), THEN the proxy SHALL forward the response to the frontend
+1. WHEN the frontend sends GET /proxy/{resource}/{id} and apiType is "rest", THEN the proxy SHALL construct a REST request
+2. WHEN the resource has a "detail" operation defined with path containing {id}, THEN the proxy SHALL replace {id} with actual value
+3. WHEN no "detail" operation is defined, THEN the proxy SHALL use REST heuristic: GET {baseUrl}/{endpoint}/{id}
+4. WHEN field mappings are configured, THEN the proxy SHALL translate field names in the response
+5. WHEN the legacy backend returns 404, THEN the proxy SHALL return normalized NOT_FOUND error
 
-### Requirement 5: Update Operation Proxying (PUT /proxy/{resource}/{id})
+---
 
-**User Story:** As a frontend user, I want to update an existing resource, so that I can modify records.
+### Requirement 4: REST Create Operation (POST /proxy/{resource})
 
-#### Acceptance Criteria
-
-1. WHEN the frontend sends PUT /proxy/{resource}/{id} with JSON body, THEN the proxy SHALL look up the resource configuration
-2. WHEN the resource has an "update" operation defined, THEN the proxy SHALL use that operation's method and path, replacing {id} placeholder
-3. WHEN no "update" operation is defined, THEN the proxy SHALL use REST heuristic: PUT {baseUrl}/{resource}/{id}
-4. WHEN the request includes a JSON body, THEN the proxy SHALL forward it to the legacy backend unchanged
-5. WHEN the legacy backend returns a successful response, THEN the proxy SHALL forward the response to the frontend
-
-### Requirement 6: Delete Operation Proxying (DELETE /proxy/{resource}/{id})
-
-**User Story:** As a frontend user, I want to delete a resource, so that I can remove records from the system.
+**User Story:** As a frontend user, I want to create a new resource via REST API.
 
 #### Acceptance Criteria
 
-1. WHEN the frontend sends DELETE /proxy/{resource}/{id}, THEN the proxy SHALL look up the resource configuration
-2. WHEN the resource has a "delete" operation defined, THEN the proxy SHALL use that operation's method and path, replacing {id} placeholder
-3. WHEN no "delete" operation is defined, THEN the proxy SHALL use REST heuristic: DELETE {baseUrl}/{resource}/{id}
-4. WHEN the legacy backend returns a successful response (200, 204), THEN the proxy SHALL return success to the frontend
-5. WHEN the legacy backend returns an error, THEN the proxy SHALL normalize it to JSON format
+1. WHEN the frontend sends POST /proxy/{resource} with JSON body and apiType is "rest", THEN the proxy SHALL forward the request
+2. WHEN field mappings are configured, THEN the proxy SHALL translate normalized field names to legacy names in the request body
+3. WHEN no "create" operation is defined, THEN the proxy SHALL use REST heuristic: POST {baseUrl}/{endpoint}
+4. WHEN the legacy backend returns 201 Created, THEN the proxy SHALL forward the response with field names translated
+5. WHEN the legacy backend returns an error, THEN the proxy SHALL normalize it
 
-### Requirement 7: Bearer Token Authentication
+---
 
-**User Story:** As a user with a bearer token, I want the proxy to attach it to all requests, so that I don't have to manage authentication in the frontend.
+### Requirement 5: REST Update Operation (PUT /proxy/{resource}/{id})
 
-#### Acceptance Criteria
-
-1. WHEN auth mode is "bearer" and a token is configured, THEN the proxy SHALL include "Authorization: Bearer {token}" header on all backend requests
-2. WHEN the legacy backend returns 401 Unauthorized, THEN the proxy SHALL return a normalized error indicating authentication failure
-3. WHEN the legacy backend returns 403 Forbidden, THEN the proxy SHALL return a normalized error indicating insufficient permissions
-4. WHEN no auth mode is configured, THEN the proxy SHALL make requests without authentication headers
-5. WHEN the bearer token is empty or null, THEN the proxy SHALL treat it as auth mode "none"
-
-### Requirement 8: API Key Authentication
-
-**User Story:** As a user with an API key, I want the proxy to attach it to all requests, so that the legacy API accepts my calls.
+**User Story:** As a frontend user, I want to update an existing resource via REST API.
 
 #### Acceptance Criteria
 
-1. WHEN auth mode is "apiKey" with header name and value configured, THEN the proxy SHALL include that header on all backend requests
-2. WHEN the API key header name is "X-API-Key", THEN the proxy SHALL use "X-API-Key: {value}"
-3. WHEN the API key header name is custom (e.g., "X-Custom-Auth"), THEN the proxy SHALL use that custom header name
-4. WHEN the legacy backend returns 401 or 403, THEN the proxy SHALL return a normalized authentication error
-5. WHEN the API key value is empty, THEN the proxy SHALL treat it as auth mode "none"
+1. WHEN the frontend sends PUT /proxy/{resource}/{id} with JSON body and apiType is "rest", THEN the proxy SHALL forward the request
+2. WHEN field mappings are configured, THEN the proxy SHALL translate field names in both request and response
+3. WHEN no "update" operation is defined, THEN the proxy SHALL use REST heuristic: PUT {baseUrl}/{endpoint}/{id}
+4. WHEN the path contains {id}, THEN the proxy SHALL replace it with the actual ID value
+5. WHEN the legacy backend returns success, THEN the proxy SHALL forward the translated response
 
-### Requirement 9: Basic Authentication
+---
 
-**User Story:** As a user with username and password credentials, I want the proxy to handle basic auth, so that I can access protected legacy APIs.
+### Requirement 6: REST Delete Operation (DELETE /proxy/{resource}/{id})
 
-#### Acceptance Criteria
-
-1. WHEN auth mode is "basic" with username and password configured, THEN the proxy SHALL encode credentials as base64
-2. WHEN credentials are encoded, THEN the proxy SHALL include "Authorization: Basic {base64(username:password)}" header on all backend requests
-3. WHEN the legacy backend returns 401, THEN the proxy SHALL return a normalized error indicating invalid credentials
-4. WHEN username or password is empty, THEN the proxy SHALL treat it as auth mode "none"
-5. WHEN the legacy backend accepts basic auth, THEN the proxy SHALL forward successful responses to the frontend
-
-### Requirement 10: Error Normalization
-
-**User Story:** As a frontend developer, I want all errors in a consistent JSON format, so that I can display meaningful messages to users.
+**User Story:** As a frontend user, I want to delete a resource via REST API.
 
 #### Acceptance Criteria
 
-1. WHEN the legacy backend returns a 404 Not Found, THEN the proxy SHALL return JSON: {"error": {"code": "NOT_FOUND", "status": 404, "message": "Resource not found"}}
-2. WHEN the legacy backend returns a 500 Internal Server Error, THEN the proxy SHALL return JSON: {"error": {"code": "BACKEND_ERROR", "status": 500, "message": "Legacy backend error"}}
-3. WHEN the legacy backend returns HTML instead of JSON, THEN the proxy SHALL return JSON: {"error": {"code": "INVALID_RESPONSE", "status": 502, "message": "Backend returned non-JSON response"}}
-4. WHEN the legacy backend is unreachable or times out, THEN the proxy SHALL return JSON: {"error": {"code": "BACKEND_UNAVAILABLE", "status": 503, "message": "Unable to reach legacy backend"}}
-5. WHEN the configured operation path returns 405 Method Not Allowed, THEN the proxy SHALL return JSON: {"error": {"code": "OPERATION_NOT_SUPPORTED", "status": 405, "message": "The configured operation is not supported by the backend"}}
+1. WHEN the frontend sends DELETE /proxy/{resource}/{id} and apiType is "rest", THEN the proxy SHALL forward the request
+2. WHEN no "delete" operation is defined, THEN the proxy SHALL use REST heuristic: DELETE {baseUrl}/{endpoint}/{id}
+3. WHEN the legacy backend returns 200 or 204, THEN the proxy SHALL return success
+4. WHEN the legacy backend returns 404, THEN the proxy SHALL return normalized NOT_FOUND error
+5. WHEN the path contains {id}, THEN the proxy SHALL replace it with the actual ID value
 
-### Requirement 11: CORS Handling
+---
 
-**User Story:** As a frontend developer, I want to avoid CORS issues, so that my browser can make requests without preflight failures.
+### Requirement 7: Authentication Modes
 
-#### Acceptance Criteria
-
-1. WHEN the frontend makes a request to the proxy, THEN the proxy SHALL include "Access-Control-Allow-Origin" header with the frontend origin
-2. WHEN the frontend makes a preflight OPTIONS request, THEN the proxy SHALL respond with appropriate CORS headers
-3. WHEN the proxy forwards requests to the legacy backend, THEN it SHALL make server-to-server calls that bypass browser CORS restrictions
-4. WHEN the legacy backend does not support CORS, THEN the proxy SHALL still work because it acts as an intermediary
-5. WHEN the proxy returns responses to the frontend, THEN it SHALL include "Access-Control-Allow-Credentials: true" if needed
-
-### Requirement 12: REST Heuristics for Operation Inference
-
-**User Story:** As a system, I want to propose standard REST operations even when not explicitly configured, so that users can quickly test if their backend follows REST conventions.
+**User Story:** As a user, I want the proxy to handle authentication automatically for both REST and SOAP APIs.
 
 #### Acceptance Criteria
 
-1. WHEN a resource has no explicit "list" operation configured, THEN the proxy SHALL attempt GET {baseUrl}/{resourceEndpoint}
-2. WHEN a resource has no explicit "detail" operation configured, THEN the proxy SHALL attempt GET {baseUrl}/{resourceEndpoint}/{id}
-3. WHEN a resource has no explicit "create" operation configured, THEN the proxy SHALL attempt POST {baseUrl}/{resourceEndpoint}
-4. WHEN a resource has no explicit "update" operation configured, THEN the proxy SHALL attempt PUT {baseUrl}/{resourceEndpoint}/{id}
-5. WHEN a resource has no explicit "delete" operation configured, THEN the proxy SHALL attempt DELETE {baseUrl}/{resourceEndpoint}/{id}
+1. WHEN auth mode is "bearer", THEN the proxy SHALL include "Authorization: Bearer {token}" header
+2. WHEN auth mode is "apiKey", THEN the proxy SHALL include the configured header name and value
+3. WHEN auth mode is "basic", THEN the proxy SHALL include "Authorization: Basic {base64}" header
+4. WHEN auth mode is "wsse" and apiType is "soap", THEN the proxy SHALL include WS-Security header in SOAP envelope
+5. WHEN auth mode is "none", THEN the proxy SHALL make requests without authentication
+6. WHEN WSSE is used, THEN the UsernameToken SHALL include Username, Password, Nonce, and Created elements
+7. WHEN the backend returns 401/403, THEN the proxy SHALL return normalized authentication error
 
-### Requirement 13: Path Parameter Substitution
+---
 
-**User Story:** As a system, I want to replace path parameters like {id} with actual values, so that parameterized endpoints work correctly.
+### Requirement 8: SOAP List Operation (GET /proxy/{resource})
 
-#### Acceptance Criteria
-
-1. WHEN an operation path contains {id}, THEN the proxy SHALL replace it with the actual ID from the request URL
-2. WHEN an operation path contains {resourceId}, THEN the proxy SHALL replace it with the actual ID from the request URL
-3. WHEN an operation path contains multiple parameters like {userId} and {orderId}, THEN the proxy SHALL replace all parameters with values from the request
-4. WHEN a path parameter is not found in the request, THEN the proxy SHALL return a 400 error indicating missing parameter
-5. WHEN path parameters are successfully replaced, THEN the proxy SHALL make the request to the fully resolved URL
-
-### Requirement 14: Query Parameter Forwarding
-
-**User Story:** As a frontend developer, I want to pass query parameters through the proxy, so that I can support filtering, pagination, and sorting.
+**User Story:** As a frontend user, I want to fetch a list of resources from a SOAP API.
 
 #### Acceptance Criteria
 
-1. WHEN the frontend sends GET /proxy/{resource}?status=PAID&page=2, THEN the proxy SHALL forward query parameters to the legacy backend
-2. WHEN the legacy backend supports query parameters, THEN the proxy SHALL preserve all query string parameters unchanged
-3. WHEN the legacy backend does not support query parameters, THEN the proxy SHALL still forward them (backend will ignore)
-4. WHEN query parameters contain special characters, THEN the proxy SHALL properly URL-encode them
-5. WHEN no query parameters are provided, THEN the proxy SHALL make requests without query strings
+1. WHEN the frontend sends GET /proxy/{resource} and apiType is "soap", THEN the proxy SHALL construct a SOAP request
+2. WHEN the resource has a "list" operation with soapAction configured, THEN the proxy SHALL use that SOAPAction header
+3. WHEN the resource has a "list" operation with operationName configured, THEN the proxy SHALL use that operation name in the SOAP body
+4. WHEN the proxy makes the request, THEN it SHALL POST to baseUrl with Content-Type "text/xml; charset=utf-8"
+5. WHEN the SOAP response is received, THEN the proxy SHALL parse the XML and extract data records
+6. WHEN field mappings are configured, THEN the proxy SHALL translate legacy XML element names to normalized names
+7. WHEN the SOAP response contains a Fault, THEN the proxy SHALL return normalized SOAP_FAULT error
 
-### Requirement 15: Response Unwrapping (Optional Enhancement)
+---
 
-**User Story:** As a frontend developer, I want consistent response formats, so that I don't have to handle different wrapping patterns.
+### Requirement 9: SOAP Detail Operation (GET /proxy/{resource}/{id})
 
-#### Acceptance Criteria
-
-1. WHEN the legacy backend returns {data: [...]}, THEN the proxy MAY unwrap it to return [...] directly
-2. WHEN the legacy backend returns {Data: {Users: [...]}}, THEN the proxy MAY unwrap it to return [...]
-3. WHEN the legacy backend returns a root-level array, THEN the proxy SHALL return it unchanged
-4. WHEN unwrapping is enabled in configuration, THEN the proxy SHALL apply unwrapping logic consistently
-5. WHEN unwrapping is disabled (default), THEN the proxy SHALL return responses unchanged
-
-### Requirement 16: Configuration Endpoint
-
-**User Story:** As a frontend, I want to send proxy configuration via API, so that users can set up their backend connection through the UI.
+**User Story:** As a frontend user, I want to fetch a single resource by ID from a SOAP API.
 
 #### Acceptance Criteria
 
-1. WHEN the frontend sends POST /api/proxy/config with baseUrl and auth settings, THEN the proxy SHALL store the configuration
-2. WHEN the configuration is stored, THEN the proxy SHALL return a success response with configuration ID
-3. WHEN the frontend sends GET /api/proxy/config, THEN the proxy SHALL return the current configuration (without sensitive values like tokens)
-4. WHEN the frontend sends PUT /api/proxy/config to update settings, THEN the proxy SHALL update the stored configuration
-5. WHEN the frontend sends DELETE /api/proxy/config, THEN the proxy SHALL clear the stored configuration
+1. WHEN the frontend sends GET /proxy/{resource}/{id} and apiType is "soap", THEN the proxy SHALL construct a SOAP request with ID parameter
+2. WHEN the resource has a "detail" operation configured, THEN the proxy SHALL use that operation's settings
+3. WHEN building the SOAP request, THEN the proxy SHALL include the ID as a parameter element in the operation
+4. WHEN the SOAP response is received, THEN the proxy SHALL parse and extract the single record
+5. WHEN the record is not found, THEN the proxy SHALL return normalized NOT_FOUND error
 
-### Requirement 17: Timeout Handling
+---
 
-**User Story:** As a system operator, I want requests to legacy backends to timeout, so that slow backends don't hang the proxy indefinitely.
+### Requirement 10: SOAP Create Operation (POST /proxy/{resource})
 
-#### Acceptance Criteria
-
-1. WHEN the proxy makes a request to the legacy backend, THEN it SHALL timeout after 30 seconds by default
-2. WHEN a request times out, THEN the proxy SHALL return a 503 error with message "Request to legacy backend timed out"
-3. WHEN the timeout value is configurable via environment variable, THEN the proxy SHALL use that value
-4. WHEN a timeout occurs, THEN the proxy SHALL log the event with the target URL and duration
-5. WHEN the legacy backend responds before timeout, THEN the proxy SHALL forward the response normally
-
-### Requirement 18: Request Logging
-
-**User Story:** As a system operator, I want to see which proxy requests are being made, so that I can debug issues and monitor usage.
+**User Story:** As a frontend user, I want to create a new resource via SOAP API.
 
 #### Acceptance Criteria
 
-1. WHEN the proxy receives a request, THEN it SHALL log the method, resource, operation, and timestamp
-2. WHEN the proxy forwards a request to the legacy backend, THEN it SHALL log the target URL and method
-3. WHEN the legacy backend responds, THEN it SHALL log the status code and response time
-4. WHEN an error occurs, THEN it SHALL log the error type and message
-5. WHEN logging is configured to DEBUG level, THEN it SHALL also log request/response bodies (sanitized)
+1. WHEN the frontend sends POST /proxy/{resource} with JSON body and apiType is "soap", THEN the proxy SHALL construct a SOAP request
+2. WHEN field mappings are configured, THEN the proxy SHALL translate JSON field names to legacy XML element names
+3. WHEN building the SOAP request, THEN the proxy SHALL convert the JSON body to XML elements inside the operation
+4. WHEN the resource has a "create" operation configured, THEN the proxy SHALL use that operation's name and soapAction
+5. WHEN the SOAP response indicates success, THEN the proxy SHALL parse and return the created record with normalized field names
+
+---
+
+### Requirement 11: SOAP Update Operation (PUT /proxy/{resource}/{id})
+
+**User Story:** As a frontend user, I want to update an existing resource via SOAP API.
+
+#### Acceptance Criteria
+
+1. WHEN the frontend sends PUT /proxy/{resource}/{id} with JSON body and apiType is "soap", THEN the proxy SHALL construct a SOAP request
+2. WHEN building the request, THEN the proxy SHALL include both the ID and the translated field values as XML elements
+3. WHEN the resource has an "update" operation configured, THEN the proxy SHALL use that operation's settings
+4. WHEN field mappings are configured, THEN the proxy SHALL translate field names in both directions
+5. WHEN the SOAP response indicates success, THEN the proxy SHALL return the updated record normalized
+
+---
+
+### Requirement 12: SOAP Delete Operation (DELETE /proxy/{resource}/{id})
+
+**User Story:** As a frontend user, I want to delete a resource via SOAP API.
+
+#### Acceptance Criteria
+
+1. WHEN the frontend sends DELETE /proxy/{resource}/{id} and apiType is "soap", THEN the proxy SHALL construct a SOAP request
+2. WHEN building the request, THEN the proxy SHALL include the ID as a parameter element
+3. WHEN the resource has a "delete" operation configured, THEN the proxy SHALL use that operation's settings
+4. WHEN the SOAP response indicates success, THEN the proxy SHALL return success to frontend
+5. WHEN the SOAP response contains a Fault indicating not found, THEN the proxy SHALL return normalized NOT_FOUND error
+
+---
+
+### Requirement 13: Error Normalization
+
+**User Story:** As a frontend developer, I want all errors in a consistent JSON format regardless of API type.
+
+#### Acceptance Criteria
+
+1. WHEN a REST backend returns 404, THEN the proxy SHALL return: {"error": {"code": "NOT_FOUND", "status": 404, "message": "..."}}
+2. WHEN a REST backend returns 500, THEN the proxy SHALL return: {"error": {"code": "BACKEND_ERROR", "status": 500, "message": "..."}}
+3. WHEN a REST backend returns HTML, THEN the proxy SHALL return: {"error": {"code": "INVALID_RESPONSE", "status": 502, "message": "..."}}
+4. WHEN a SOAP response contains Fault, THEN the proxy SHALL return: {"error": {"code": "SOAP_FAULT", "status": 500, "message": "{faultstring}", "soapFaultCode": "{faultcode}"}}
+5. WHEN the backend is unreachable or times out, THEN the proxy SHALL return: {"error": {"code": "BACKEND_UNAVAILABLE", "status": 503, "message": "..."}}
+6. WHEN a SOAP response is not valid XML, THEN the proxy SHALL return: {"error": {"code": "INVALID_RESPONSE", "status": 502, "message": "..."}}
+
+---
+
+### Requirement 14: CORS Handling
+
+**User Story:** As a frontend developer, I want to avoid CORS issues when calling the proxy.
+
+#### Acceptance Criteria
+
+1. WHEN the frontend makes a request to the proxy, THEN the proxy SHALL include CORS headers in response
+2. WHEN the frontend makes a preflight OPTIONS request, THEN the proxy SHALL respond appropriately
+3. WHEN the proxy forwards to legacy backend, THEN it SHALL bypass browser CORS restrictions via server-to-server call
+4. WHEN the proxy returns any response, THEN it SHALL include "Access-Control-Allow-Origin" header
+
+---
+
+### Requirement 15: REST Heuristics for Unconfigured Operations
+
+**User Story:** As a system, I want to propose standard REST operations when not explicitly configured.
+
+#### Acceptance Criteria
+
+1. WHEN a REST resource has no explicit "list" operation, THEN attempt GET {baseUrl}/{endpoint}
+2. WHEN a REST resource has no explicit "detail" operation, THEN attempt GET {baseUrl}/{endpoint}/{id}
+3. WHEN a REST resource has no explicit "create" operation, THEN attempt POST {baseUrl}/{endpoint}
+4. WHEN a REST resource has no explicit "update" operation, THEN attempt PUT {baseUrl}/{endpoint}/{id}
+5. WHEN a REST resource has no explicit "delete" operation, THEN attempt DELETE {baseUrl}/{endpoint}/{id}
+
+---
+
+### Requirement 16: Field Mapping
+
+**User Story:** As a system, I want to translate between legacy and normalized field names automatically.
+
+#### Acceptance Criteria
+
+1. WHEN field mappings are configured and a response is received, THEN translate legacy names to normalized names
+2. WHEN field mappings are configured and a request body is sent, THEN translate normalized names to legacy names
+3. WHEN a field has no mapping, THEN pass it through unchanged
+4. WHEN mapping REST responses, THEN apply mapping after JSON parsing
+5. WHEN mapping SOAP responses, THEN apply mapping after XML-to-dict conversion
+6. WHEN mapping SOAP requests, THEN apply mapping before dict-to-XML conversion
+
+---
+
+### Requirement 17: Response Unwrapping
+
+**User Story:** As a system, I want to extract data from nested response structures.
+
+#### Acceptance Criteria
+
+1. WHEN responsePath is configured (e.g., "Data.Users"), THEN extract data at that path from REST JSON response
+2. WHEN responsePath is not configured, THEN return response as-is (after field mapping)
+3. WHEN SOAP response has nested structure, THEN extract records from response body
+4. WHEN the path doesn't exist in response, THEN return empty array for list or null for detail
+
+---
+
+### Requirement 18: Query Parameter Forwarding (REST)
+
+**User Story:** As a frontend developer, I want to pass query parameters through the proxy for REST APIs.
+
+#### Acceptance Criteria
+
+1. WHEN GET /proxy/{resource}?status=active&page=2 is called, THEN forward query params to REST backend
+2. WHEN query parameters contain special characters, THEN URL-encode them properly
+3. WHEN no query parameters provided, THEN make request without query string
+
+---
+
+### Requirement 19: SOAP Request Construction
+
+**User Story:** As a system, I want to build valid SOAP request envelopes.
+
+#### Acceptance Criteria
+
+1. WHEN building a SOAP request, THEN create valid XML with soap:Envelope, soap:Header, and soap:Body
+2. WHEN namespace is configured, THEN include it in the operation element
+3. WHEN parameters are provided, THEN convert them to XML elements inside the operation
+4. WHEN WSSE auth is configured, THEN include Security header in soap:Header
+5. WHEN making the request, THEN set Content-Type to "text/xml; charset=utf-8"
+6. WHEN making the request, THEN set SOAPAction header to the configured value
+
+---
+
+### Requirement 20: SOAP Response Parsing
+
+**User Story:** As a system, I want to parse SOAP responses and extract data.
+
+#### Acceptance Criteria
+
+1. WHEN a SOAP response is received, THEN parse the XML and locate soap:Body
+2. WHEN soap:Body contains data elements, THEN convert them to Python dicts/lists
+3. WHEN response contains soap:Fault, THEN extract faultcode and faultstring
+4. WHEN response element names have namespaces, THEN strip namespaces for field mapping
+5. WHEN multiple records are found, THEN return as list
+6. WHEN single record is found, THEN return as dict
+
+---
+
+### Requirement 21: Timeout Handling
+
+**User Story:** As a system operator, I want requests to timeout to prevent hanging.
+
+#### Acceptance Criteria
+
+1. WHEN making a request to legacy backend, THEN timeout after 30 seconds by default
+2. WHEN timeout occurs, THEN return normalized BACKEND_UNAVAILABLE error
+3. WHEN timeout value is configurable, THEN use configured value
+4. WHEN timeout occurs, THEN log the event
+
+---
+
+### Requirement 22: Request Logging
+
+**User Story:** As a system operator, I want visibility into proxy operations.
+
+#### Acceptance Criteria
+
+1. WHEN proxy receives request, THEN log method, resource, operation, apiType
+2. WHEN proxy forwards request, THEN log target URL (sanitize auth)
+3. WHEN response received, THEN log status and duration
+4. WHEN error occurs, THEN log error code and message
+5. WHEN DEBUG level, THEN log request/response bodies (sanitized)
+
+---
+
+### Requirement 23: Configuration Endpoints
+
+**User Story:** As a frontend, I want to manage proxy configuration via API.
+
+#### Acceptance Criteria
+
+1. WHEN POST /api/proxy/config is called, THEN store configuration to JSON file
+2. WHEN GET /api/proxy/config is called, THEN return sanitized configuration (hide tokens)
+3. WHEN DELETE /api/proxy/config is called, THEN delete configuration file
+4. WHEN invalid configuration is provided, THEN return 400 with validation errors
+
+---
 
 ## Out of Scope
 
-- Full login flow handling (POST /login, token extraction, session management)
-- Token refresh logic
+- OAuth flows and token refresh
 - Cookie-based authentication
-- OAuth flows
-- Request/response transformation beyond unwrapping
-- Caching of backend responses
-- Rate limiting
-- Request queuing or retry logic
-- Multi-tenant configuration (one config per deployment for hackathon)
-- Persistent storage of configuration (in-memory for hackathon)
 - WebSocket proxying
 - GraphQL proxying
+- Request caching
+- Rate limiting
+- Multi-tenant configuration
+- WSDL fetching at runtime (config must be provided)

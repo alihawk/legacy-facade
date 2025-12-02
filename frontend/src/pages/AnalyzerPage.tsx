@@ -2,7 +2,7 @@
 
 import { useState, ChangeEvent } from "react"
 import { useNavigate } from "react-router-dom"
-import { Skull, Upload, FileJson, Globe, ChevronRight, Sparkles, Braces } from 'lucide-react'
+import { Skull, Upload, FileJson, Globe, ChevronRight, Sparkles, Braces, ArrowLeft } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
@@ -60,6 +60,16 @@ export default function AnalyzerPage() {
   const [resources, setResources] = useState<ResourceSchema[]>([])
   const [analyzed, setAnalyzed] = useState(false)
   const [cleaning, setCleaning] = useState(false)
+
+  // INLINE STEP STATE (not modals!)
+  const [currentStep, setCurrentStep] = useState<'results' | 'review' | 'customize'>('results')
+  const [reviewedResources, setReviewedResources] = useState<any[]>([])
+  const [uiCustomization, setUiCustomization] = useState({
+    dashboard: { statsCards: true, barChart: true, recentActivity: true },
+    listView: { bulkSelection: true, bulkDelete: true, csvExport: true, smartFieldRendering: true },
+    forms: { smartInputs: true },
+    theme: { mode: 'auto' as 'light' | 'dark' | 'auto', accentColor: 'blue' as 'blue' | 'green' | 'purple' | 'orange' }
+  })
 
   const navigate = useNavigate()
 
@@ -281,7 +291,13 @@ export default function AnalyzerPage() {
 
   const handleGenerate = () => {
     setGenerating(true)
-    localStorage.setItem("app-schema", JSON.stringify({ resources }))
+    
+    // Use REVIEWED resources if available, otherwise use detected resources
+    const schemaToUse = reviewedResources.length > 0 ? reviewedResources : resources
+    localStorage.setItem("app-schema", JSON.stringify({ resources: schemaToUse }))
+    
+    // Save UI customization settings
+    localStorage.setItem("portal-customization", JSON.stringify(uiCustomization))
 
     // Simulate portal generation with longer delay for the necromancer animation
     setTimeout(() => {
@@ -494,7 +510,7 @@ export default function AnalyzerPage() {
           <div className="flex items-center justify-center gap-4 mb-4">
             {/* Animated skull logo */}
             <div className="relative">
-              <div className="absolute inset-0 bg-green-500 rounded-full blur-xl opacity-30 animate-pulse" />
+              <div className="absolute inset-0 bg-cyan-500 rounded-full blur-xl opacity-30 animate-pulse" />
               <svg viewBox="0 0 80 100" className="w-20 h-24 relative z-10 ghost-float">
                 <defs>
                   <linearGradient id="headerSkullGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -532,16 +548,26 @@ export default function AnalyzerPage() {
           </div>
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
             Resurrect your dead APIs with modern, beautiful UIs.
-            <span className="text-green-400"> No backend changes required.</span>
+            <span className="text-cyan-400"> No backend changes required.</span>
           </p>
         </div>
 
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/")}
+          className="mb-6 text-gray-400 hover:text-white hover:bg-slate-800/50"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to API Selection
+        </Button>
+
         {!analyzed ? (
           // UPLOAD INTERFACE
-          <Card className="bg-slate-900/90 backdrop-blur-sm border-green-500/30 shadow-2xl spooky-card">
+          <Card className="bg-slate-900/90 backdrop-blur-sm border-cyan-500/30 shadow-2xl spooky-card">
             <CardHeader className="border-b border-slate-800">
               <CardTitle className="text-2xl text-white flex items-center gap-3">
-                <Sparkles className="w-6 h-6 text-green-500 animate-pulse" />
+                <Sparkles className="w-6 h-6 text-cyan-500 animate-pulse" />
                 Step 1: Connect Your API
               </CardTitle>
             </CardHeader>
@@ -555,7 +581,7 @@ export default function AnalyzerPage() {
                   }}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-md font-medium transition-all duration-300 ${
                     activeTab === "openapi"
-                      ? "bg-gradient-to-r from-green-600/30 to-green-500/20 text-green-400 border border-green-500/50 shadow-lg shadow-green-500/20"
+                      ? "bg-gradient-to-r from-cyan-600/30 to-green-500/20 text-cyan-400 border border-cyan-500/50 shadow-lg shadow-cyan-500/20"
                       : "text-gray-400 hover:text-gray-200 hover:bg-slate-800/50"
                   }`}
                 >
@@ -583,7 +609,7 @@ export default function AnalyzerPage() {
                   }}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-md font-medium transition-all duration-300 ${
                     activeTab === "json"
-                      ? "bg-gradient-to-r from-emerald-600/30 to-emerald-500/20 text-emerald-300 border border-emerald-500/50 shadow-lg shadow-emerald-500/20"
+                      ? "bg-gradient-to-r from-teal-600/30 to-emerald-500/20 text-teal-300 border border-teal-500/50 shadow-lg shadow-emerald-500/20"
                       : "text-gray-400 hover:text-gray-200 hover:bg-slate-800/50"
                   }`}
                 >
@@ -599,7 +625,7 @@ export default function AnalyzerPage() {
                     value={specJson}
                     onChange={(e) => setSpecJson(e.target.value)}
                     placeholder='{"openapi": "3.0.0", "paths": {...}}'
-                    className="min-h-[260px] font-mono text-sm bg-slate-950/80 text-green-400 border-green-500/30 focus:border-green-500 placeholder:text-gray-600 spooky-input"
+                    className="min-h-[260px] font-mono text-sm bg-slate-950/80 text-cyan-400 border-cyan-500/30 focus:border-cyan-500 placeholder:text-gray-600 spooky-input"
                   />
 
                   {/* File upload + URL row */}
@@ -611,7 +637,7 @@ export default function AnalyzerPage() {
                           type="file"
                           accept=".json,.yaml,.yml"
                           onChange={handleSpecFileChange}
-                          className="bg-slate-950/80 border-green-500/30 text-green-400 file:bg-slate-900 file:border-0 file:text-sm file:text-gray-300 file:px-3 file:py-1.5"
+                          className="bg-slate-950/80 border-cyan-500/30 text-cyan-400 file:bg-gradient-to-r file:from-cyan-600 file:to-teal-600 file:border-0 file:text-sm file:font-medium file:text-white file:px-4 file:py-2 file:mr-3 file:rounded-lg file:cursor-pointer file:hover:from-cyan-700 file:hover:to-teal-700 file:transition-all file:shadow-lg file:shadow-cyan-500/20 file:flex file:items-center file:justify-center cursor-pointer"
                         />
                       </div>
                       {specFileName && <p className="text-xs text-gray-500 mt-1">Loaded file: {specFileName}</p>}
@@ -622,7 +648,7 @@ export default function AnalyzerPage() {
                         value={specUrl}
                         onChange={(e) => setSpecUrl(e.target.value)}
                         placeholder="https://api.company.com/swagger.json"
-                        className="bg-slate-950/80 border-green-500/30 text-green-400 focus:border-green-500 placeholder:text-gray-600"
+                        className="bg-slate-950/80 border-cyan-500/30 text-cyan-400 focus:border-cyan-500 placeholder:text-gray-600"
                       />
                       <p className="text-xs text-gray-500">
                         Paste a docs URL like <span className="font-mono text-gray-300">/swagger.json</span> or{" "}
@@ -636,7 +662,7 @@ export default function AnalyzerPage() {
                       <Button
                         variant="outline"
                         onClick={loadExample}
-                        className="border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-green-500/50 transition-all duration-300 bg-transparent"
+                        className="border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-cyan-500/50 transition-all duration-300 bg-transparent"
                       >
                         <Upload className="w-4 h-4 mr-2" />
                         HR Example
@@ -772,7 +798,7 @@ export default function AnalyzerPage() {
                     value={jsonSample}
                     onChange={(e) => setJsonSample(e.target.value)}
                     placeholder='{"Data": {"Users": [ { "user_id": 1, ... } ] }}'
-                    className="min-h-[220px] font-mono text-sm bg-slate-950/80 text-emerald-300 border-emerald-500/30 focus:border-emerald-500 placeholder:text-gray-600"
+                    className="min-h-[220px] font-mono text-sm bg-slate-950/80 text-teal-300 border-teal-500/30 focus:border-teal-500 placeholder:text-gray-600"
                   />
 
                   {/* Minimal connection info for JSON sample */}
@@ -783,7 +809,7 @@ export default function AnalyzerPage() {
                         value={jsonBaseUrl}
                         onChange={(e) => setJsonBaseUrl(e.target.value)}
                         placeholder="https://api.example.com"
-                        className="bg-slate-950/80 border-emerald-500/30 text-emerald-300 focus:border-emerald-500 placeholder:text-gray-600"
+                        className="bg-slate-950/80 border-teal-500/30 text-teal-300 focus:border-teal-500 placeholder:text-gray-600"
                       />
                       <p className="text-xs text-gray-500">Leave empty if this is just a mock / design preview.</p>
                     </div>
@@ -793,7 +819,7 @@ export default function AnalyzerPage() {
                         value={jsonEndpointPath}
                         onChange={(e) => setJsonEndpointPath(e.target.value)}
                         placeholder="/api/v1/GetAllUsers"
-                        className="bg-slate-950/80 border-emerald-500/30 text-emerald-300 focus:border-emerald-500 placeholder:text-gray-600"
+                        className="bg-slate-950/80 border-teal-500/30 text-teal-300 focus:border-teal-500 placeholder:text-gray-600"
                       />
                     </div>
                   </div>
@@ -801,7 +827,7 @@ export default function AnalyzerPage() {
                   <div className="space-y-2 max-w-xs">
                     <label className="text-sm font-medium text-gray-300">HTTP Method</label>
                     <Select value={jsonHttpMethod} onValueChange={(v) => setJsonHttpMethod(v as HttpMethod)}>
-                      <SelectTrigger className="bg-slate-950/80 border-emerald-500/30 text-white">
+                      <SelectTrigger className="bg-slate-950/80 border-teal-500/30 text-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-slate-900 border-slate-700">
@@ -818,7 +844,7 @@ export default function AnalyzerPage() {
                     <Button
                       variant="outline"
                       onClick={loadJsonExample}
-                      className="border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-emerald-500/50 transition-all duration-300 bg-transparent"
+                      className="border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-teal-500/50 transition-all duration-300 bg-transparent"
                     >
                       <Upload className="w-4 h-4 mr-2" />
                       Load Example Sample
@@ -856,11 +882,11 @@ export default function AnalyzerPage() {
           </Card>
         ) : (
           // RESULTS INTERFACE
-          <Card className="bg-slate-900/90 backdrop-blur-sm border-green-500/30 shadow-2xl spooky-card">
+          <Card className="bg-slate-900/90 backdrop-blur-sm border-cyan-500/30 shadow-2xl spooky-card">
             <CardHeader className="border-b border-slate-800">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-green-400" />
+                <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-cyan-400" />
                 </div>
                 <div>
                   <CardTitle className="text-2xl text-white">
@@ -871,25 +897,26 @@ export default function AnalyzerPage() {
               </div>
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
-              {resources.map((resource) => (
+              {/* STEP 1: Results - Show detected resources */}
+              {currentStep === 'results' && resources.map((resource) => (
                 <div
                   key={resource.name}
-                  className="p-5 bg-slate-950/80 border border-green-500/20 rounded-lg hover:border-green-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/10"
+                  className="p-5 bg-slate-950/80 border border-cyan-500/20 rounded-lg hover:border-cyan-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10"
                 >
                   <div className="space-y-4">
                     <div>
-                      <h3 className="text-xl font-semibold text-green-400 mb-2 flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      <h3 className="text-xl font-semibold text-cyan-400 mb-2 flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
                         {resource.displayName}
                       </h3>
                       <p className="text-sm text-gray-400 mb-3">
-                        {resource.fields.length} fields | {resource.operations.length} operations
+                        {resource.fields.length} fields | {Array.isArray(resource.operations) ? resource.operations.length : Object.keys(resource.operations || {}).length} operations
                       </p>
                       <div className="flex gap-2 flex-wrap">
-                        {resource.operations.map((op) => (
+                        {(Array.isArray(resource.operations) ? resource.operations : Object.keys(resource.operations || {})).map((op) => (
                           <span
                             key={op}
-                            className="text-xs px-3 py-1 bg-slate-800 text-gray-300 rounded-full border border-slate-700 hover:border-green-500/50 transition-colors"
+                            className="text-xs px-3 py-1 bg-slate-800 text-gray-300 rounded-full border border-slate-700 hover:border-cyan-500/50 transition-colors"
                           >
                             {op}
                           </span>
@@ -914,7 +941,7 @@ export default function AnalyzerPage() {
                                 {field.name}
                               </code>
                               {field.name === resource.primaryKey && (
-                                <span className="text-[10px] px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded border border-green-500/30 font-semibold">
+                                <span className="text-[10px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 rounded border border-cyan-500/30 font-semibold">
                                   PK
                                 </span>
                               )}
@@ -936,7 +963,224 @@ export default function AnalyzerPage() {
                 </div>
               ))}
 
-              {/* Clean Names Button */}
+              {/* STEP 2: Review Schema - INLINE */}
+              {currentStep === 'review' && (
+                <div className="space-y-6 animate-emerge">
+                  <div className="text-center mb-6">
+                    <h3 className="text-2xl font-bold text-cyan-400 mb-2">Step 2: Review Schema</h3>
+                    <p className="text-gray-400">Edit operations, fields, and types</p>
+                  </div>
+                  
+                  {reviewedResources.map((resource, idx) => (
+                    <div key={idx} className="p-5 bg-slate-950/80 border border-cyan-500/20 rounded-lg">
+                      <h4 className="text-lg font-semibold text-cyan-400 mb-4">{resource.displayName}</h4>
+                      
+                      {/* Operations Toggles */}
+                      <div className="mb-4">
+                        <h5 className="text-sm font-medium text-gray-300 mb-2">Operations</h5>
+                        <p className="text-xs text-gray-500 mb-2">
+                          💡 Tip: "Detail" is read-only. Selecting only "Detail" will disable create/update/delete operations.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(resource.operations).map(([op, enabled]) => {
+                            // Check if only "detail" and "list" are enabled (read-only mode)
+                            const isReadOnlyMode = resource.operations.detail && !resource.operations.create && !resource.operations.update && !resource.operations.delete
+                            // Disable create/update/delete if user is trying to make it read-only
+                            const shouldDisable = isReadOnlyMode && (op === 'create' || op === 'update' || op === 'delete')
+                            
+                            return (
+                              <label 
+                                key={op} 
+                                className={`flex items-center gap-2 ${shouldDisable ? 'text-gray-600 cursor-not-allowed' : 'text-gray-300 cursor-pointer'}`}
+                                title={shouldDisable ? 'Disabled in read-only mode (Detail only)' : ''}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(enabled)}
+                                  disabled={shouldDisable}
+                                  onChange={(e) => {
+                                    const updated = [...reviewedResources]
+                                    updated[idx].operations[op] = e.target.checked
+                                    
+                                    // If unchecking detail, auto-enable at least list
+                                    if (op === 'detail' && !e.target.checked) {
+                                      updated[idx].operations.list = true
+                                    }
+                                    
+                                    setReviewedResources(updated)
+                                  }}
+                                  className="w-4 h-4"
+                                />
+                                <span className="capitalize">{op}</span>
+                              </label>
+                            )
+                          })}
+                        </div>
+                      </div>
+                      
+                      {/* Fields Editor */}
+                      <div>
+                        <h5 className="text-sm font-medium text-gray-300 mb-2">Fields</h5>
+                        <div className="space-y-2">
+                          {resource.fields.map((field: any, fieldIdx: number) => (
+                            <div key={fieldIdx} className="flex items-center gap-4 p-2 bg-slate-800/50 rounded">
+                              <input
+                                type="checkbox"
+                                checked={field.isVisible}
+                                onChange={(e) => {
+                                  const updated = [...reviewedResources]
+                                  updated[idx].fields[fieldIdx].isVisible = e.target.checked
+                                  setReviewedResources(updated)
+                                }}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-gray-300 min-w-[120px]">{field.displayName}</span>
+                              <select
+                                value={field.type}
+                                onChange={(e) => {
+                                  const updated = [...reviewedResources]
+                                  updated[idx].fields[fieldIdx].type = e.target.value
+                                  setReviewedResources(updated)
+                                }}
+                                className="bg-slate-700 text-gray-300 px-2 py-1 rounded text-sm"
+                              >
+                                <option value="string">String</option>
+                                <option value="number">Number</option>
+                                <option value="boolean">Boolean</option>
+                                <option value="date">Date</option>
+                                <option value="email">Email</option>
+                                <option value="url">URL</option>
+                              </select>
+                              <label className="flex items-center gap-1 text-xs text-gray-400">
+                                <input
+                                  type="radio"
+                                  name={`primary-${idx}`}
+                                  checked={field.isPrimaryKey}
+                                  onChange={() => {
+                                    const updated = [...reviewedResources]
+                                    updated[idx].fields.forEach((f: any, i: number) => {
+                                      f.isPrimaryKey = i === fieldIdx
+                                    })
+                                    setReviewedResources(updated)
+                                  }}
+                                  className="w-3 h-3"
+                                />
+                                Primary Key
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* STEP 3: Customize Portal - INLINE */}
+              {currentStep === 'customize' && (
+                <div className="space-y-6 animate-emerge">
+                  <div className="text-center mb-6">
+                    <h3 className="text-2xl font-bold text-purple-400 mb-2">Step 3: Customize Your Portal</h3>
+                    <p className="text-gray-400">Choose features, theme, and colors</p>
+                  </div>
+                  
+                  {/* Dashboard Features */}
+                  <div className="p-5 bg-slate-950/80 border border-purple-500/20 rounded-lg">
+                    <h4 className="text-lg font-semibold text-purple-400 mb-3">📊 Dashboard Features</h4>
+                    <div className="space-y-2">
+                      {Object.entries(uiCustomization.dashboard).map(([key, enabled]) => (
+                        <label key={key} className="flex items-center gap-3 text-gray-300 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={enabled}
+                            onChange={(e) => setUiCustomization({
+                              ...uiCustomization,
+                              dashboard: { ...uiCustomization.dashboard, [key]: e.target.checked }
+                            })}
+                            className="w-4 h-4"
+                          />
+                          <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* List View Features */}
+                  <div className="p-5 bg-slate-950/80 border border-purple-500/20 rounded-lg">
+                    <h4 className="text-lg font-semibold text-purple-400 mb-3">📋 List View Features</h4>
+                    <div className="space-y-2">
+                      {Object.entries(uiCustomization.listView).map(([key, enabled]) => (
+                        <label key={key} className="flex items-center gap-3 text-gray-300 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={enabled}
+                            onChange={(e) => setUiCustomization({
+                              ...uiCustomization,
+                              listView: { ...uiCustomization.listView, [key]: e.target.checked }
+                            })}
+                            className="w-4 h-4"
+                          />
+                          <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Theme Selector */}
+                  <div className="p-5 bg-slate-950/80 border border-purple-500/20 rounded-lg">
+                    <h4 className="text-lg font-semibold text-purple-400 mb-3">🎨 Theme</h4>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-300 mb-2 block">Mode</label>
+                        <div className="flex gap-2">
+                          {(['light', 'auto', 'dark'] as const).map((mode) => (
+                            <button
+                              key={mode}
+                              onClick={() => setUiCustomization({
+                                ...uiCustomization,
+                                theme: { ...uiCustomization.theme, mode }
+                              })}
+                              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                uiCustomization.theme.mode === mode
+                                  ? 'bg-purple-600 text-white'
+                                  : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                              }`}
+                            >
+                              {mode === 'light' && '☀️ Light'}
+                              {mode === 'auto' && '🌗 Auto'}
+                              {mode === 'dark' && '💀 Spooky/Dark'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium text-gray-300 mb-2 block">Accent Color</label>
+                        <div className="flex gap-3">
+                          {(['blue', 'green', 'purple', 'orange'] as const).map((color) => (
+                            <button
+                              key={color}
+                              onClick={() => setUiCustomization({
+                                ...uiCustomization,
+                                theme: { ...uiCustomization.theme, accentColor: color }
+                              })}
+                              className={`w-10 h-10 rounded-full bg-${color}-500 transition-transform ${
+                                uiCustomization.theme.accentColor === color
+                                  ? 'ring-2 ring-offset-2 ring-gray-400 scale-110'
+                                  : 'hover:scale-105'
+                              }`}
+                              title={color}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Clean Names Button - Only on results step */}
+              {currentStep === 'results' && (
               <div className="pt-4 border-t border-slate-800">
                 <Button
                   onClick={handleCleanNames}
@@ -951,12 +1195,75 @@ export default function AnalyzerPage() {
                   Use AI to intelligently clean technical field names (removes prefixes, expands abbreviations)
                 </p>
               </div>
+              )}
 
-              <Button onClick={handleGenerate} className="w-full text-white text-lg py-6 mt-6 portal-button">
-                <Skull className="mr-2 w-5 h-5" />
-                Generate Portal
-                <ChevronRight className="ml-2 w-5 h-5" />
-              </Button>
+              {/* NAVIGATION BUTTONS */}
+              {currentStep === 'results' && (
+                <Button 
+                  onClick={() => {
+                    // Initialize reviewed resources from detected resources
+                    // Default to read-only mode (list + detail only) for safety
+                    const initialReviewed = resources.map(resource => ({
+                      ...resource,
+                      operations: {
+                        list: true,
+                        detail: true,
+                        create: false,
+                        update: false,
+                        delete: false
+                      },
+                      fields: resource.fields.map(field => ({
+                        ...field,
+                        isVisible: true,
+                        isPrimaryKey: field.name === 'id' || field.name.toLowerCase().includes('id')
+                      }))
+                    }))
+                    setReviewedResources(initialReviewed)
+                    setCurrentStep('review')
+                  }} 
+                  className="w-full text-white text-lg py-6 mt-6 portal-button"
+                >
+                  Next: Review Schema
+                  <ChevronRight className="ml-2 w-5 h-5" />
+                </Button>
+              )}
+
+              {currentStep === 'review' && (
+                <div className="flex gap-4 mt-6">
+                  <Button 
+                    variant="outline"
+                    onClick={() => setCurrentStep('results')}
+                    className="flex-1 text-gray-300 border-slate-700 hover:bg-slate-800"
+                  >
+                    ← Back
+                  </Button>
+                  <Button 
+                    onClick={() => setCurrentStep('customize')}
+                    className="flex-1 text-white text-lg bg-cyan-600 hover:bg-cyan-700"
+                  >
+                    Next: Customize →
+                  </Button>
+                </div>
+              )}
+
+              {currentStep === 'customize' && (
+                <div className="flex gap-4 mt-6">
+                  <Button 
+                    variant="outline"
+                    onClick={() => setCurrentStep('review')}
+                    className="flex-1 text-gray-300 border-slate-700 hover:bg-slate-800"
+                  >
+                    ← Back
+                  </Button>
+                  <Button 
+                    onClick={handleGenerate}
+                    className="flex-1 text-white text-lg py-6 bg-purple-600 hover:bg-purple-700"
+                  >
+                    <Skull className="mr-2 w-5 h-5" />
+                    Generate Portal 🚀
+                  </Button>
+                </div>
+              )}
 
               <Button
                 variant="ghost"

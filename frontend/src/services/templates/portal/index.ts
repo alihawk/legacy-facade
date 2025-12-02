@@ -17,8 +17,11 @@ export {
 
 export {
   sidebarTemplate,
-  dashboardTemplate,
 } from './componentTemplates'
+
+export {
+  dashboardTemplate,
+} from './dashboardTemplate'
 
 export {
   resourceListTemplate,

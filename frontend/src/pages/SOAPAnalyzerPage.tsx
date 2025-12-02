@@ -10,6 +10,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import SpookyBackground from "@/components/SpookyBackground"
 import SpookyLoader from "@/components/SpookyLoader"
+import { useSchemaContext } from "../context/SchemaContext"
 import axios from "axios"
 
 interface ResourceField {
@@ -58,8 +59,15 @@ export default function SOAPAnalyzerPage() {
   const [error, setError] = useState("")
   const [resources, setResources] = useState<ResourceSchema[]>([])
   const [analyzed, setAnalyzed] = useState(false)
+  
+  // Review/Customization flow state
+  const [reviewStep, setReviewStep] = useState<'results' | 'review' | 'customize'>('results')
+  const [uiConfig, setUiConfig] = useState({
+    output: { preview: true, download: false, deploy: false }
+  })
 
   const navigate = useNavigate()
+  const { setDetectedSchema, setApiConfig } = useSchemaContext()
 
   const buildFallbackResources = (): ResourceSchema[] => {
     return [
@@ -242,8 +250,11 @@ export default function SOAPAnalyzerPage() {
 
   const handleGenerate = () => {
     setGenerating(true)
+    
+    // Store schema in localStorage (keep old format for compatibility)
     localStorage.setItem("app-schema", JSON.stringify({ resources }))
 
+    // Navigate directly to portal with necromancer animation
     setTimeout(() => {
       navigate("/portal")
     }, 4500)
@@ -709,7 +720,7 @@ export default function SOAPAnalyzerPage() {
                           type="file"
                           accept=".wsdl,.xml"
                           onChange={handleWsdlFileChange}
-                          className="bg-slate-950/80 border-purple-500/30 text-purple-400 file:bg-slate-900 file:border-0 file:text-sm file:text-gray-300 file:px-3 file:py-1.5"
+                          className="bg-slate-950/80 border-purple-500/30 text-purple-400 file:bg-gradient-to-r file:from-purple-600 file:to-violet-600 file:border-0 file:text-sm file:font-medium file:text-white file:px-4 file:py-2 file:mr-3 file:rounded-lg file:cursor-pointer file:hover:from-purple-700 file:hover:to-violet-700 file:transition-all file:shadow-lg file:shadow-purple-500/20 file:flex file:items-center file:justify-center cursor-pointer"
                         />
                       </div>
                       {wsdlFileName && <p className="text-xs text-gray-500 mt-1">Loaded file: {wsdlFileName}</p>}
@@ -983,20 +994,67 @@ export default function SOAPAnalyzerPage() {
                 </div>
               ))}
 
-              <Button
-                onClick={handleGenerate}
-                className="w-full text-white text-lg py-6 mt-6 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600"
-              >
-                <Skull className="mr-2 w-5 h-5" />
-                Generate Portal
-                <ChevronRight className="ml-2 w-5 h-5" />
-              </Button>
+              {/* Step Navigation Buttons */}
+              {reviewStep === 'results' && (
+                <Button 
+                  onClick={() => setReviewStep('customize')} 
+                  className="w-full text-white text-lg py-6 mt-6 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600"
+                >
+                  Next: Customize Portal
+                  <ChevronRight className="ml-2 w-5 h-5" />
+                </Button>
+              )}
+
+              {reviewStep === 'customize' && (
+                <>
+                  <div className="p-5 bg-slate-950/80 border border-purple-500/20 rounded-lg mt-6">
+                    <h4 className="text-md font-semibold text-purple-400 mb-3">📤 Output Options</h4>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-3 text-gray-300 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={uiConfig.output.preview}
+                          onChange={(e) => setUiConfig({...uiConfig, output: {...uiConfig.output, preview: e.target.checked}})}
+                          className="w-4 h-4"
+                        />
+                        <span>👁️ Preview in Browser</span>
+                      </label>
+                      <label className="flex items-center gap-3 text-gray-300 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={uiConfig.output.download}
+                          onChange={(e) => setUiConfig({...uiConfig, output: {...uiConfig.output, download: e.target.checked}})}
+                          className="w-4 h-4"
+                        />
+                        <span>📥 Download ZIP</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div className="flex gap-4 mt-6">
+                    <Button 
+                      variant="outline"
+                      onClick={() => setReviewStep('results')} 
+                      className="flex-1 text-gray-300 border-slate-700 hover:bg-slate-800"
+                    >
+                      ← Back
+                    </Button>
+                    <Button 
+                      onClick={handleGenerate} 
+                      className="flex-1 text-white text-lg py-6 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600"
+                    >
+                      <Skull className="mr-2 w-5 h-5" />
+                      Generate Portal
+                    </Button>
+                  </div>
+                </>
+              )}
 
               <Button
                 variant="ghost"
                 onClick={() => {
                   setAnalyzed(false)
                   setResources([])
+                  setReviewStep('results')
                   setWsdlContent("")
                   setWsdlUrl("")
                   setWsdlFileName("")

@@ -17,3 +17,27 @@ export {
   dialogTemplate,
   selectTemplate,
 } from './complexComponents'
+
+export {
+  bulkActionsBarTemplate,
+} from './bulkActionsBarTemplate'
+
+export {
+  confirmDialogTemplate,
+} from './confirmDialogTemplate'
+
+export {
+  fieldRendererTemplate,
+} from './fieldRendererTemplate'
+
+export {
+  statsCardTemplate,
+} from './statsCardTemplate'
+
+export {
+  simpleBarChartTemplate,
+} from './simpleBarChartTemplate'
+
+export {
+  recentActivityTemplate,
+} from './recentActivityTemplate'

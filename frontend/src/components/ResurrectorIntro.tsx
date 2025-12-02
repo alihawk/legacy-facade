@@ -100,7 +100,7 @@ export default function ResurrectorIntro({ onComplete }: ResurrectorIntroProps) 
             <div className="absolute top-2 left-4 flex gap-2">
               <div className="w-2 h-2 rounded-full bg-red-500/50"></div>
               <div className="w-2 h-2 rounded-full bg-yellow-500/50"></div>
-              <div className="w-2 h-2 rounded-full bg-green-500/50"></div>
+              <div className="w-2 h-2 rounded-full bg-cyan-500/50"></div>
             </div>
             <div
               className="bg-gray-900 rounded-xl p-6 font-mono text-sm overflow-hidden"
@@ -116,14 +116,14 @@ export default function ResurrectorIntro({ onComplete }: ResurrectorIntroProps) 
                         ? "text-yellow-500"
                         : msg.includes("necromancer")
                           ? "text-purple-400 animate-pulse"
-                          : "text-green-500"
+                          : "text-cyan-500"
                   }`}
                   style={{ animation: "emerge 0.3s ease-out" }}
                 >
                   {msg}
                 </div>
               ))}
-              <span className="inline-block w-2 h-4 bg-green-500 animate-pulse ml-1">_</span>
+              <span className="inline-block w-2 h-4 bg-cyan-500 animate-pulse ml-1">_</span>
             </div>
             {/* Monitor stand */}
             <div className="mx-auto mt-2 w-24 h-3 bg-gradient-to-b from-gray-600 to-gray-700 rounded-b-lg"></div>

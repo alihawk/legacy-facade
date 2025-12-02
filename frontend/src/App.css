@@ -40,3 +40,38 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Override hardcoded important rules for theme support */
+/* Remove the hardcoded dark color from inputs and selects */
+input {
+  color: inherit !important;
+  background-color: transparent !important;
+}
+
+[data-slot="select-trigger"] {
+  color: inherit !important;
+  background-color: transparent !important;
+}
+
+[data-slot="select-content"] {
+  background-color: inherit !important;
+  color: inherit !important;
+}
+
+[data-slot="select-item"] {
+  color: inherit !important;
+  background-color: transparent !important;
+}
+
+/* Ensure text inputs in spooky theme have proper styling - using cyan color */
+.bg-slate-800 input,
+.bg-slate-900 input {
+  color: #22d3ee !important;
+  background-color: transparent !important;
+}
+
+.bg-slate-800 [data-slot="select-trigger"],
+.bg-slate-900 [data-slot="select-trigger"] {
+  color: #22d3ee !important;
+  background-color: transparent !important;
+}

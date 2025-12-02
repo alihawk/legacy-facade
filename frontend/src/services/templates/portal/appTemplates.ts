@@ -4,7 +4,7 @@
 
 export const appTsxTemplate = (schemas: any[]): string => {
   const routes = schemas.map(schema => `
-            <Route path="${schema.name}" element={<ResourceListWrapper resources={resources} />} />
+            <Route path="${schema.name}" element={<ResourceListWrapper resources={resources} isSpooky={isSpookyTheme} />} />
             <Route path="${schema.name}/new" element={<ResourceFormWrapper resources={resources} mode="create" />} />
             <Route path="${schema.name}/:id" element={<ResourceDetailWrapper resources={resources} />} />
             <Route path="${schema.name}/:id/edit" element={<ResourceFormWrapper resources={resources} mode="edit" />} />`
@@ -12,27 +12,73 @@ export const appTsxTemplate = (schemas: any[]): string => {
 
   return `import { useState, useEffect } from "react"
 import { BrowserRouter, Routes, Route, useNavigate, useParams } from "react-router-dom"
+import { Moon, Sun } from "lucide-react"
 import Sidebar from "./components/Sidebar"
 import Dashboard from "./components/Dashboard"
 import ResourceList from "./components/ResourceList"
 import ResourceDetail from "./components/ResourceDetail"
 import ResourceForm from "./components/ResourceForm"
+import { Button } from "./components/ui/button"
 import { resources as configResources } from "./config/resources"
 import type { ResourceSchema } from "./types"
 
 export default function App() {
   const [resources] = useState<ResourceSchema[]>(configResources)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
+    const stored = localStorage.getItem('theme')
+    return (stored === 'dark' ? 'dark' : 'light') as 'light' | 'dark'
+  })
+
+  const isSpookyTheme = currentTheme === 'dark'
+
+  const toggleTheme = () => {
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light'
+    setCurrentTheme(newTheme)
+    localStorage.setItem('theme', newTheme)
+  }
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-gray-50">
-        <Sidebar resources={resources} open={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <div className={\`min-h-screen \${isSpookyTheme ? 'bg-slate-950' : 'bg-gray-50'}\`}>
+        <Sidebar resources={resources} open={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} isSpooky={isSpookyTheme} />
 
         <main className={\`transition-all duration-300 \${sidebarOpen ? "ml-64" : "ml-16"}\`}>
-          <div className="p-8">
+          {/* Theme Toggle Header */}
+          <div className={\`\${isSpookyTheme ? 'bg-slate-900 border-green-500/30' : 'bg-white border-gray-200'} border-b px-8 py-4 sticky top-0 z-30 shadow-sm\`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className={\`text-xl font-semibold \${isSpookyTheme ? 'text-green-400' : 'text-gray-900'}\`}>
+                  {isSpookyTheme ? '💀 ' : ''}Admin Portal
+                </h1>
+                <p className={\`text-sm \${isSpookyTheme ? 'text-gray-400' : 'text-gray-500'}\`}>
+                  {resources.length} resources loaded
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleTheme}
+                className="gap-2 border-gray-200 hover:bg-gray-50 px-3"
+              >
+                {currentTheme === 'dark' ? (
+                  <>
+                    <Moon className="w-4 h-4" />
+                    <span className="hidden sm:inline">Spooky</span>
+                  </>
+                ) : (
+                  <>
+                    <Sun className="w-4 h-4" />
+                    <span className="hidden sm:inline">Light</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <div className={\`p-8 \${isSpookyTheme ? 'bg-slate-950' : ''}\`}>
             <Routes>
-              <Route index element={<Dashboard resources={resources} />} />${routes}
+              <Route index element={<Dashboard resources={resources} isSpooky={isSpookyTheme} />} />${routes}
             </Routes>
           </div>
         </main>
@@ -42,11 +88,11 @@ export default function App() {
 }
 
 // Wrapper components to extract params
-function ResourceListWrapper({ resources }: { resources: ResourceSchema[] }) {
+function ResourceListWrapper({ resources, isSpooky }: { resources: ResourceSchema[], isSpooky: boolean }) {
   const { resourceName } = useParams()
   const resource = resources.find((r) => r.name === resourceName)
-  if (!resource) return <div className="text-gray-600">Resource not found</div>
-  return <ResourceList resource={resource} />
+  if (!resource) return <div className={isSpooky ? "text-gray-400" : "text-gray-600"}>Resource not found</div>
+  return <ResourceList resource={resource} isSpooky={isSpooky} />
 }
 
 function ResourceDetailWrapper({ resources }: { resources: ResourceSchema[] }) {

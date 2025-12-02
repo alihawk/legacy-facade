@@ -1,0 +1,14 @@
+To force reload and clear cache:
+
+1. Open browser DevTools (F12)
+2. Go to Application tab
+3. Click "Clear storage" on the left
+4. Click "Clear site data" button
+5. Close DevTools
+6. Hard refresh: Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac)
+
+OR
+
+Visit: http://localhost:5173/?v=2
+
+The ?v=2 parameter will force the browser to reload all assets.

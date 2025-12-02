@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Storage</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        h1 {
+            color: #16a34a;
+            margin: 0 0 16px 0;
+        }
+        p {
+            color: #6b7280;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✓ Storage Cleared!</h1>
+        <p>All cached tokens have been removed.</p>
+        <p>You can close this tab and refresh your app.</p>
+    </div>
+    <script>
+        // Clear all localStorage
+        localStorage.clear();
+        
+        // Also clear sessionStorage
+        sessionStorage.clear();
+        
+        console.log('All storage cleared!');
+    </script>
+</body>
+</html>

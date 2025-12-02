@@ -15,6 +15,42 @@ from typing import Union
 logger = logging.getLogger(__name__)
 
 
+def unwrap_by_path(
+    data: Union[dict, list, str, int, float, bool, None],
+    path: str
+) -> Union[dict, list, str, int, float, bool, None]:
+    """Extract data using dot notation path like 'Data.Users'.
+    
+    Args:
+        data: Response data to unwrap
+        path: Dot-separated path (e.g., 'Data.Users', 'result.items')
+        
+    Returns:
+        Data at the specified path, or original data if path not found
+        
+    Examples:
+        >>> unwrap_by_path({"Data": {"Users": [{"id": 1}]}}, "Data.Users")
+        [{"id": 1}]
+        
+        >>> unwrap_by_path({"result": {"items": []}}, "result.items")
+        []
+    """
+    if not path or not isinstance(data, dict):
+        return data
+        
+    result = data
+    for key in path.split('.'):
+        if isinstance(result, dict) and key in result:
+            result = result[key]
+        else:
+            # Path not found, return original data
+            logger.warning("Path '%s' not found in response, returning original data", path)
+            return data
+            
+    logger.debug("Unwrapped response using path: %s", path)
+    return result
+
+
 def unwrap_response(
     response_data: Union[dict, list, str, int, float, bool, None]
 ) -> Union[dict, list, str, int, float, bool, None]:
