@@ -1,43 +1,102 @@
-backend/.hypothesis/
-
-
 # macOS
 .DS_Store
+.AppleDouble
+.LSOverride
 
 # IDE/editor
 .vscode/
 .idea/
 *.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
 
 # Env / secrets
 .env
 .env.*
 *.local
+.env.production
+.env.development
 
 # Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 *.log
 
 # Node / frontend
 node_modules/
 dist/
+dist-ssr/
 frontend/node_modules/
 frontend/dist/
+frontend/dist-ssr/
+*.local
 
 # Vite
 frontend/.vite/
+.vite/
 
-# Backend Python (future)
+# Build outputs
+build/
+out/
+.next/
+.nuxt/
+.cache/
+
+# Backend Python
 backend/.venv/
 backend/venv/
 backend/__pycache__/
 backend/.mypy_cache/
 backend/.pytest_cache/
+backend/.hypothesis/
+backend/.ruff_cache/
+backend/*.pyc
+backend/**/__pycache__/
+backend/**/*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
 
 # Coverage
 coverage/
 frontend/coverage/
 backend/coverage/
+.nyc_output/
+htmlcov/
+.coverage
+.coverage.*
+
+# Testing
+.pytest_cache/
+.hypothesis/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Package files
+*.tgz
+*.tar.gz
+*.zip
+
+# Lock files (optional - uncomment if you want to ignore them)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml

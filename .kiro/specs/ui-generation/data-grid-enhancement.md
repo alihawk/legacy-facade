@@ -88,8 +88,3 @@ const filteredData = data.filter(item => {
 - Export to CSV (future feature)
 ```
 
-### **Step 2: Use Kiro Chat to Implement**
-
-Now go to **Kiro chat** and type:
-```
-Open spec data-grid-enhancement.md. Implement the column sorting feature in ResourceList.tsx. Keep the existing style and structure - just add sort state and clickable headers.

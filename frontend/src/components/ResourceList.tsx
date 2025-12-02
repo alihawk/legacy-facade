@@ -7,15 +7,22 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import axios from "axios"
 import { LoadingSpinner, EmptyState } from "./LoadingState"
 import { getUIConfig } from "./ResourceSettings"
+import { BulkActionsBar } from "./BulkActionsBar"
+import { ConfirmDialog } from "./ConfirmDialog"
+import { exportToCSV } from "@/utils/csvExport"
+import { FieldRenderer } from "./FieldRenderer"
 
 interface ResourceListProps {
   resource: any
+  isSpooky?: boolean
+  customization?: any
 }
 
-export default function ResourceList({ resource }: ResourceListProps) {
+export default function ResourceList({ resource, isSpooky = false, customization: propCustomization }: ResourceListProps) {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -23,7 +30,21 @@ export default function ResourceList({ resource }: ResourceListProps) {
   const [itemsPerPage, setItemsPerPage] = useState(20)
   const [sortField, setSortField] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [selectedIds, setSelectedIds] = useState<Set<any>>(new Set())
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const navigate = useNavigate()
+
+  // Use prop customization or read from localStorage
+  const customization = propCustomization || (() => {
+    try {
+      const stored = localStorage.getItem("portal-customization")
+      return stored ? JSON.parse(stored) : {
+        listView: { bulkSelection: true, bulkDelete: true, csvExport: true, smartFieldRendering: true }
+      }
+    } catch {
+      return { listView: { bulkSelection: true, bulkDelete: true, csvExport: true, smartFieldRendering: true } }
+    }
+  })()
 
   useEffect(() => {
     fetchData()
@@ -140,25 +161,52 @@ export default function ResourceList({ resource }: ResourceListProps) {
     setCurrentPage(1)
   }, [searchTerm, itemsPerPage])
 
-  const formatValue = (value: any, field: any): string => {
-    if (value === null || value === undefined) return "-"
-    switch (field.type) {
-      case "date":
-        return new Date(value).toLocaleDateString()
-      case "boolean":
-        return value ? "Yes" : "No"
-      case "number":
-        return Number(value).toLocaleString()
-      default: {
-        const str = String(value)
-        return str.length > 50 ? str.substring(0, 50) + "..." : str
-      }
-    }
-  }
-
   const handleRowClick = (item: any) => {
     const id = item[resource.primaryKey]
     navigate(`/portal/${resource.name}/${id}`)
+  }
+
+  // Bulk selection handlers
+  const toggleSelectAll = () => {
+    if (selectedIds.size === paginatedData.length) {
+      setSelectedIds(new Set())
+    } else {
+      const allIds = new Set(paginatedData.map(item => item[resource.primaryKey]))
+      setSelectedIds(allIds)
+    }
+  }
+
+  const toggleSelectItem = (id: any) => {
+    const newSelected = new Set(selectedIds)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedIds(newSelected)
+  }
+
+  const handleExport = () => {
+    const selectedData = data.filter(item => selectedIds.has(item[resource.primaryKey]))
+    const dataToExport = selectedData.length > 0 ? selectedData : paginatedData
+    exportToCSV(dataToExport, `${resource.name}-export`, resource.fields)
+  }
+
+  const handleBulkDelete = () => {
+    setShowDeleteDialog(true)
+  }
+
+  const confirmBulkDelete = async () => {
+    // In a real app, this would call the API
+    console.log('Deleting items:', Array.from(selectedIds))
+    
+    // Simulate deletion
+    const newData = data.filter(item => !selectedIds.has(item[resource.primaryKey]))
+    setData(newData)
+    setSelectedIds(new Set())
+    
+    // Show success message (you could add a toast here)
+    alert(`Successfully deleted ${selectedIds.size} items`)
   }
 
   if (loading) {
@@ -168,86 +216,112 @@ export default function ResourceList({ resource }: ResourceListProps) {
   return (
     <div className="space-y-6 animate-emerge">
       {/* Header - Enhanced */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-indigo-100 to-purple-50 rounded-xl">
-              <Sparkles className="w-5 h-5 text-indigo-600" />
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-xl ${isSpooky ? 'bg-cyan-500/20' : 'bg-gradient-to-br from-indigo-100 to-purple-50'}`}>
+                <Sparkles className={`w-5 h-5 ${isSpooky ? 'text-cyan-400' : 'text-indigo-600'}`} />
+              </div>
+              <h1 className={`text-2xl font-bold ${isSpooky ? 'text-cyan-400' : 'bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent'}`}>
+                {isSpooky ? '💀 ' : ''}{resource.displayName}
+              </h1>
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-              {resource.displayName}
-            </h1>
+            <p className={`mt-2 ml-12 ${isSpooky ? 'text-gray-400' : 'text-gray-500'}`}>Manage and view all {resource.displayName.toLowerCase()}</p>
           </div>
-          <p className="text-gray-500 mt-2 ml-12">Manage and view all {resource.displayName.toLowerCase()}</p>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/portal/${resource.name}/settings`)}
+              className={`rounded-xl ${isSpooky ? 'border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/portal/${resource.name}/activity`)}
+              className={`rounded-xl ${isSpooky ? 'border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+            >
+              <History className="w-4 h-4 mr-2" />
+              Activity Log
+            </Button>
+            {/* Only show Add button if create operation is enabled */}
+            {resource.operations?.create !== false && (
+              <Button
+                className={`shadow-lg hover:shadow-xl transition-all ${isSpooky ? 'bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700' : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700'} text-white`}
+                onClick={() => navigate(`/portal/${resource.name}/new`)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add {resource.displayName.slice(0, -1)}
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            onClick={() => navigate(`/portal/${resource.name}/settings`)}
-            className="border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl"
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Settings
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate(`/portal/${resource.name}/activity`)}
-            className="border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl"
-          >
-            <History className="w-4 h-4 mr-2" />
-            Activity Log
-          </Button>
-          <Button
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl transition-all"
-            onClick={() => navigate(`/portal/${resource.name}/new`)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add {resource.displayName.slice(0, -1)}
-          </Button>
-        </div>
+
+        {/* Bulk Actions Bar - Show when items are selected */}
+        {(customization.listView?.bulkSelection || customization.listView?.bulkDelete || customization.listView?.csvExport) && (
+          <BulkActionsBar
+            selectedCount={selectedIds.size}
+            onClearSelection={() => setSelectedIds(new Set())}
+            onExport={customization.listView?.csvExport ? handleExport : undefined}
+            onDelete={customization.listView?.bulkDelete && resource.operations?.delete !== false ? handleBulkDelete : undefined}
+            isSpooky={isSpooky}
+          />
+        )}
       </div>
 
       {/* Search & Filter Bar - Enhanced */}
-      <div className="flex gap-4 bg-white p-5 rounded-2xl border-0 shadow-lg shadow-gray-200/50">
+      <div className={`flex gap-4 p-5 rounded-2xl border-0 shadow-lg ${isSpooky ? 'bg-slate-900 border border-cyan-500/30 shadow-cyan-500/10' : 'bg-white shadow-gray-200/50'}`}>
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" />
+          <Search className={`absolute left-4 top-3.5 w-5 h-5 ${isSpooky ? 'text-cyan-400' : 'text-gray-400'}`} />
           <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={`Search ${resource.displayName.toLowerCase()}...`}
-            className="pl-12 h-12 bg-gray-50 border-0 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all"
+            className={`pl-12 h-12 border-0 rounded-xl transition-all ${isSpooky ? 'bg-slate-800 text-cyan-400 placeholder:text-gray-500 focus:bg-slate-700 focus:ring-2 focus:ring-cyan-500/20' : 'bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20'}`}
           />
         </div>
         <Select value={itemsPerPage.toString()} onValueChange={(v) => setItemsPerPage(Number(v))}>
-          <SelectTrigger className="w-40 h-12 bg-gray-50 border-0 rounded-xl">
-            <Filter className="w-4 h-4 mr-2 text-gray-400" />
+          <SelectTrigger className={`w-40 h-12 border-0 rounded-xl ${isSpooky ? 'bg-slate-800 text-cyan-400' : 'bg-gray-50 text-gray-900'}`}>
+            <Filter className={`w-4 h-4 mr-2 ${isSpooky ? 'text-cyan-400' : 'text-gray-400'}`} />
             <SelectValue placeholder="Per page" />
           </SelectTrigger>
-          <SelectContent className="rounded-xl">
-            <SelectItem value="10">10 per page</SelectItem>
-            <SelectItem value="20">20 per page</SelectItem>
-            <SelectItem value="50">50 per page</SelectItem>
-            <SelectItem value="100">100 per page</SelectItem>
+          <SelectContent className={`rounded-xl ${isSpooky ? 'bg-slate-800 border-cyan-500/30' : 'bg-white'}`}>
+            <SelectItem value="10" className={isSpooky ? 'text-cyan-400 focus:bg-slate-700 focus:text-cyan-300' : ''}>10 per page</SelectItem>
+            <SelectItem value="20" className={isSpooky ? 'text-cyan-400 focus:bg-slate-700 focus:text-cyan-300' : ''}>20 per page</SelectItem>
+            <SelectItem value="50" className={isSpooky ? 'text-cyan-400 focus:bg-slate-700 focus:text-cyan-300' : ''}>50 per page</SelectItem>
+            <SelectItem value="100" className={isSpooky ? 'text-cyan-400 focus:bg-slate-700 focus:text-cyan-300' : ''}>100 per page</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* Table - Enhanced */}
-      <div className="bg-white border-0 rounded-2xl shadow-lg shadow-gray-200/50 overflow-hidden">
+      <div className={`border-0 rounded-2xl shadow-lg overflow-hidden ${isSpooky ? 'bg-slate-900 border border-cyan-500/30 shadow-cyan-500/10' : 'bg-white shadow-gray-200/50'}`}>
         <Table>
           <TableHeader>
-            <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-gray-100">
+            <TableRow className={`${isSpooky ? 'bg-slate-800 border-cyan-500/20' : 'bg-gradient-to-r from-gray-50 to-gray-100/50 border-gray-100'}`}>
+              {/* Only show checkbox column if bulk selection is enabled */}
+              {customization.listView?.bulkSelection && (
+                <TableHead className="w-12 py-4">
+                  <Checkbox
+                    checked={selectedIds.size === paginatedData.length && paginatedData.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label="Select all"
+                  />
+                </TableHead>
+              )}
               <TableHead 
-                className="text-gray-600 font-semibold w-20 py-4 cursor-pointer hover:text-indigo-600 transition-colors select-none"
+                className={`font-semibold w-20 py-4 cursor-pointer transition-colors select-none ${isSpooky ? 'text-cyan-400 hover:text-cyan-300' : 'text-gray-600 hover:text-indigo-600'}`}
                 onClick={() => handleSort(resource.primaryKey)}
               >
                 <div className="flex items-center gap-2">
                   ID
                   {sortField === resource.primaryKey ? (
                     sortDirection === 'asc' ? (
-                      <ArrowUp className="w-4 h-4 text-indigo-600" />
+                      <ArrowUp className={`w-4 h-4 ${isSpooky ? 'text-cyan-400' : 'text-indigo-600'}`} />
                     ) : (
-                      <ArrowDown className="w-4 h-4 text-indigo-600" />
+                      <ArrowDown className={`w-4 h-4 ${isSpooky ? 'text-cyan-400' : 'text-indigo-600'}`} />
                     )
                   ) : (
                     <ArrowUpDown className="w-4 h-4 opacity-30" />
@@ -257,16 +331,16 @@ export default function ResourceList({ resource }: ResourceListProps) {
               {visibleFields.map((field: any) => (
                 <TableHead 
                   key={field.name} 
-                  className="text-gray-600 font-semibold py-4 cursor-pointer hover:text-indigo-600 transition-colors select-none"
+                  className={`font-semibold py-4 cursor-pointer transition-colors select-none ${isSpooky ? 'text-cyan-400 hover:text-cyan-300' : 'text-gray-600 hover:text-indigo-600'}`}
                   onClick={() => handleSort(field.name)}
                 >
                   <div className="flex items-center gap-2">
                     {getDisplayLabel(field)}
                     {sortField === field.name ? (
                       sortDirection === 'asc' ? (
-                        <ArrowUp className="w-4 h-4 text-indigo-600" />
+                        <ArrowUp className={`w-4 h-4 ${isSpooky ? 'text-cyan-400' : 'text-indigo-600'}`} />
                       ) : (
-                        <ArrowDown className="w-4 h-4 text-indigo-600" />
+                        <ArrowDown className={`w-4 h-4 ${isSpooky ? 'text-cyan-400' : 'text-indigo-600'}`} />
                       )
                     ) : (
                       <ArrowUpDown className="w-4 h-4 opacity-30" />
@@ -274,13 +348,13 @@ export default function ResourceList({ resource }: ResourceListProps) {
                   </div>
                 </TableHead>
               ))}
-              <TableHead className="text-gray-600 font-semibold text-right w-24 py-4">Actions</TableHead>
+              <TableHead className={`font-semibold text-right w-24 py-4 ${isSpooky ? 'text-cyan-400' : 'text-gray-600'}`}>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={visibleFields.length + 2} className="text-center py-12">
+                <TableCell colSpan={visibleFields.length + 3} className="text-center py-12">
                   <EmptyState
                     message={
                       searchTerm
@@ -291,61 +365,72 @@ export default function ResourceList({ resource }: ResourceListProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedData.map((item, index) => (
-                <TableRow
-                  key={item[resource.primaryKey]}
-                  className="border-gray-100 cursor-pointer hover:bg-gradient-to-r hover:from-indigo-50/50 hover:to-purple-50/30 transition-all duration-200"
-                  onClick={() => handleRowClick(item)}
-                  style={{ animationDelay: `${index * 0.03}s` }}
-                >
-                  <TableCell className="font-mono font-semibold py-4">
-                    <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                      #{item[resource.primaryKey]}
-                    </span>
-                  </TableCell>
-                  {visibleFields.map((field: any) => (
-                    <TableCell key={field.name} className="text-gray-700 py-4">
-                      {field.type === "boolean" ? (
-                        <span
-                          className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
-                            item[field.name]
-                              ? "bg-gradient-to-r from-emerald-100 to-emerald-50 text-emerald-700"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {formatValue(item[field.name], field)}
-                        </span>
-                      ) : (
-                        formatValue(item[field.name], field)
-                      )}
+              paginatedData.map((item, index) => {
+                const itemId = item[resource.primaryKey]
+                const isSelected = selectedIds.has(itemId)
+                
+                return (
+                  <TableRow
+                    key={itemId}
+                    className={`cursor-pointer transition-all duration-200 ${
+                      isSpooky 
+                        ? `border-cyan-500/20 hover:bg-cyan-500/10 ${isSelected ? 'bg-cyan-500/20' : ''}`
+                        : `border-gray-100 hover:bg-gradient-to-r hover:from-indigo-50/50 hover:to-purple-50/30 ${isSelected ? 'bg-indigo-50/30' : ''}`
+                    }`}
+                    onClick={() => handleRowClick(item)}
+                    style={{ animationDelay: `${index * 0.03}s` }}
+                  >
+                    {/* Only show checkbox if bulk selection is enabled */}
+                    {customization.listView?.bulkSelection && (
+                      <TableCell className="py-4" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleSelectItem(itemId)}
+                          aria-label={`Select item ${itemId}`}
+                        />
+                      </TableCell>
+                    )}
+                    <TableCell className="font-mono font-semibold py-4">
+                      <span className={`${isSpooky ? 'text-cyan-400' : 'bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent'}`}>
+                        #{itemId}
+                      </span>
                     </TableCell>
-                  ))}
-                  <TableCell className="text-right py-4">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleRowClick(item)
-                      }}
-                      className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-100 rounded-xl"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
+                    {visibleFields.map((field: any) => (
+                      <TableCell key={field.name} className={`py-4 ${isSpooky ? 'text-gray-300' : 'text-gray-700'}`}>
+                        <FieldRenderer
+                          value={item[field.name]}
+                          type={field.type}
+                          mode="list"
+                        />
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-right py-4">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleRowClick(item)
+                        }}
+                        className={`rounded-xl ${isSpooky ? 'text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/20' : 'text-indigo-600 hover:text-indigo-700 hover:bg-indigo-100'}`}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                )
+              })
             )}
           </TableBody>
         </Table>
       </div>
 
       {/* Pagination Footer - Enhanced */}
-      <div className="flex items-center justify-between bg-white border-0 rounded-2xl px-5 py-4 shadow-lg shadow-gray-200/50">
-        <div className="text-sm text-gray-500">
-          Showing <span className="font-semibold text-gray-900">{sortedData.length === 0 ? 0 : startIndex + 1}</span>{" "}
-          - <span className="font-semibold text-gray-900">{Math.min(endIndex, sortedData.length)}</span> of{" "}
-          <span className="font-semibold text-gray-900">{sortedData.length}</span>{" "}
+      <div className={`flex items-center justify-between border-0 rounded-2xl px-5 py-4 shadow-lg ${isSpooky ? 'bg-slate-900 border border-cyan-500/30 shadow-cyan-500/10' : 'bg-white shadow-gray-200/50'}`}>
+        <div className={`text-sm ${isSpooky ? 'text-gray-400' : 'text-gray-500'}`}>
+          Showing <span className={`font-semibold ${isSpooky ? 'text-cyan-400' : 'text-gray-900'}`}>{sortedData.length === 0 ? 0 : startIndex + 1}</span>{" "}
+          - <span className={`font-semibold ${isSpooky ? 'text-cyan-400' : 'text-gray-900'}`}>{Math.min(endIndex, sortedData.length)}</span> of{" "}
+          <span className={`font-semibold ${isSpooky ? 'text-cyan-400' : 'text-gray-900'}`}>{sortedData.length}</span>{" "}
           {resource.displayName.toLowerCase()}
         </div>
         <div className="flex items-center gap-2">
@@ -354,7 +439,7 @@ export default function ResourceList({ resource }: ResourceListProps) {
             size="sm"
             disabled={currentSafePage === 1}
             onClick={() => setCurrentPage((p) => p - 1)}
-            className="border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 rounded-xl"
+            className={`disabled:opacity-30 rounded-xl ${isSpooky ? 'border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
           >
             <ChevronLeft className="w-4 h-4 mr-1" />
             Previous
@@ -379,8 +464,12 @@ export default function ResourceList({ resource }: ResourceListProps) {
                   onClick={() => setCurrentPage(pageNum)}
                   className={
                     currentSafePage === pageNum
-                      ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white border-0 rounded-xl"
-                      : "border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl"
+                      ? isSpooky 
+                        ? "bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white border-0 rounded-xl"
+                        : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white border-0 rounded-xl"
+                      : isSpooky
+                        ? "border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 rounded-xl"
+                        : "border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl"
                   }
                 >
                   {pageNum}
@@ -393,13 +482,24 @@ export default function ResourceList({ resource }: ResourceListProps) {
             size="sm"
             disabled={currentSafePage === totalPages}
             onClick={() => setCurrentPage((p) => p + 1)}
-            className="border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 rounded-xl"
+            className={`disabled:opacity-30 rounded-xl ${isSpooky ? 'border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
           >
             Next
             <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Selected Items"
+        description={`Are you sure you want to delete ${selectedIds.size} item${selectedIds.size !== 1 ? 's' : ''}? This action cannot be undone.`}
+        confirmLabel="Delete"
+        onConfirm={confirmBulkDelete}
+        variant="danger"
+      />
     </div>
   )
 }

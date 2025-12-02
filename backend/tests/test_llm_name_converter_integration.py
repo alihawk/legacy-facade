@@ -7,7 +7,7 @@ They are skipped if API keys are not configured.
 import pytest
 
 from app.core.config import settings
-from app.utils.llm_name_converter import clear_cache, convert_batch_to_display_names
+from app.utils.llm_name_converter import convert_batch_to_display_names_llm
 
 
 @pytest.mark.skipif(
@@ -17,15 +17,11 @@ from app.utils.llm_name_converter import clear_cache, convert_batch_to_display_n
 class TestLLMNameConverterOpenAIIntegration:
     """Integration tests using real OpenAI API."""
 
-    def setup_method(self):
-        """Clear cache before each test."""
-        clear_cache()
-
     def test_real_llm_abbreviation_expansion(self):
         """Test real LLM expands abbreviations correctly."""
         field_names = ["usr_prof_v2", "dt_created_ts", "fld_email_addr_1"]
 
-        result = convert_batch_to_display_names(field_names, use_llm=True)
+        result = convert_batch_to_display_names_llm(field_names)
 
         # LLM should expand abbreviations and remove technical prefixes/suffixes
         assert "User" in result["usr_prof_v2"] or "Profile" in result["usr_prof_v2"]
@@ -40,7 +36,7 @@ class TestLLMNameConverterOpenAIIntegration:
         """Test real LLM removes technical prefixes."""
         field_names = ["fld_email", "tbl_users", "col_name"]
 
-        result = convert_batch_to_display_names(field_names, use_llm=True)
+        result = convert_batch_to_display_names_llm(field_names)
 
         # Should not contain prefixes
         assert "fld_" not in result["fld_email"]
@@ -56,7 +52,7 @@ class TestLLMNameConverterOpenAIIntegration:
         """Test real LLM removes version suffixes."""
         field_names = ["user_profile_v2", "email_new", "status_old"]
 
-        result = convert_batch_to_display_names(field_names, use_llm=True)
+        result = convert_batch_to_display_names_llm(field_names)
 
         # Should not contain version suffixes
         assert "_v2" not in result["user_profile_v2"]
@@ -77,7 +73,7 @@ class TestLLMNameConverterOpenAIIntegration:
             "cust_id_num",
         ]
 
-        result = convert_batch_to_display_names(field_names, use_llm=True)
+        result = convert_batch_to_display_names_llm(field_names)
 
         # All should be converted to readable names
         for field_name, display_name in result.items():
@@ -98,7 +94,7 @@ class TestLLMNameConverterOpenAIIntegration:
         # Generate 60 field names to test batching
         field_names = [f"field_{i}" for i in range(60)]
 
-        result = convert_batch_to_display_names(field_names, use_llm=True)
+        result = convert_batch_to_display_names_llm(field_names)
 
         # Should process all names
         assert len(result) == 60
@@ -112,7 +108,7 @@ class TestLLMNameConverterOpenAIIntegration:
         """Test real LLM handles numbers appropriately."""
         field_names = ["phone_1", "phone_2", "address_line_1", "address_line_2"]
 
-        result = convert_batch_to_display_names(field_names, use_llm=True)
+        result = convert_batch_to_display_names_llm(field_names)
 
         # Numbers might be kept or removed depending on context
         # Just verify they're readable
@@ -136,7 +132,7 @@ class TestLLMNameConverterAnthropicIntegration:
         """Test real Anthropic LLM expands abbreviations correctly."""
         field_names = ["usr_prof_v2", "dt_created_ts", "fld_email_addr_1"]
 
-        result = convert_batch_to_display_names(field_names, use_llm=True)
+        result = convert_batch_to_display_names_llm(field_names)
 
         # LLM should expand abbreviations and remove technical prefixes/suffixes
         assert "User" in result["usr_prof_v2"] or "Profile" in result["usr_prof_v2"]
@@ -151,7 +147,7 @@ class TestLLMNameConverterAnthropicIntegration:
             "is_actv_flg",
         ]
 
-        result = convert_batch_to_display_names(field_names, use_llm=True)
+        result = convert_batch_to_display_names_llm(field_names)
 
         # All should be converted to readable names
         for field_name, display_name in result.items():

@@ -61,8 +61,13 @@ interface ResourceField {
 3. For `json_sample` mode:
    - Infer field types from actual data
    - Detect collections (arrays in response)
-   - Generate display names (user_id → "User ID")
+   - Generate display names using simple rules (user_id → "User Id")
 4. Return `{ resources: ResourceSchema[] }`
+
+### Backend Endpoint: `/api/clean-names` (Optional Enhancement)
+1. Accept POST with `{ resources: ResourceSchema[] }`
+2. Use LLM to intelligently convert field/resource names
+3. Return updated `{ resources: ResourceSchema[] }` with cleaned display names
 
 ### Field Type Inference Rules
 ```python

@@ -328,7 +328,7 @@ export default function SpookyLoader({ message, variant = "analyze" }: SpookyLoa
                 <rect x="59" y="78" width="7" height="12" rx="1" fill="#d0d0d0" />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center -z-10">
-                <div className="w-24 h-24 bg-green-500 rounded-full blur-2xl opacity-40 animate-pulse" />
+                <div className="w-24 h-24 bg-cyan-500 rounded-full blur-2xl opacity-40 animate-pulse" />
               </div>
             </div>
           )}

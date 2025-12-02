@@ -89,8 +89,8 @@ The API Analyzer treats OpenAPI specifications as a primary but not guaranteed s
 
 1. WHEN the API Analyzer extracts resources from any mode, THEN it SHALL return `{"resources": [ResourceSchema, ...]}` format
 2. WHEN generating a ResourceSchema, THEN it SHALL include exactly these fields: name, displayName, endpoint, primaryKey, fields (array), operations (array)
-3. WHEN determining the display name, THEN the API Analyzer SHALL convert snake_case or camelCase to Title Case (e.g., "user_profiles" → "User Profiles", "getUserData" → "Get User Data")
-4. WHEN identifying the primary key, THEN the API Analyzer SHALL check for patterns (id, _id, {resource}_id, {resource}Id) and default to "id" if not found
+3. WHEN determining the display name, THEN the API Analyzer SHALL use simple transformation rules: replace underscores/hyphens with spaces, insert spaces before capital letters (camelCase), and apply Title Case (e.g., "user_profiles" → "User Profiles", "getUserData" → "Get User Data")
+4. WHEN identifying the primary key, THEN the API Analyzer SHALL check for patterns using word boundary regex and default to "id" if not found (see Requirement 10)
 5. WHEN listing operations, THEN the API Analyzer SHALL include operations based on available HTTP methods: GET→["list", "detail"], POST→["create"], PUT/PATCH→["update"], DELETE→["delete"]
 
 ### Requirement 7: Response Format Consistency
@@ -135,12 +135,15 @@ The API Analyzer treats OpenAPI specifications as a primary but not guaranteed s
 
 #### Acceptance Criteria
 
-1. WHEN a field is named exactly "id", THEN the API Analyzer SHALL identify it as the primary key
-2. WHEN a field is named "_id", THEN the API Analyzer SHALL identify it as the primary key
-3. WHEN a field matches the pattern "{resource}_id" (e.g., "user_id" for "users"), THEN the API Analyzer SHALL identify it as the primary key
-4. WHEN a field matches the pattern "{resource}Id" (e.g., "userId" for "users"), THEN the API Analyzer SHALL identify it as the primary key
-5. WHEN no matching field is found AND a field named "id" exists in the schema, THEN the API Analyzer SHALL default to "id" as the primary key
-6. WHEN no matching field is found AND no field named "id" exists, THEN the API Analyzer SHALL set primaryKey to "id" but the frontend should handle this gracefully
+1. WHEN a field name contains "id", "key", "code", or "number" (using word boundary regex `\b`), THEN the API Analyzer SHALL consider it a primary key candidate
+2. WHEN a field name contains "uuid" or "guid" (using word boundary regex), THEN the API Analyzer SHALL consider it a primary key candidate
+3. WHEN a field name matches "pk" or "primary_key" exactly, THEN the API Analyzer SHALL consider it a primary key candidate
+4. WHEN a field name contains "no", "num", or "seq" (using word boundary regex), THEN the API Analyzer SHALL consider it a primary key candidate
+5. WHEN a field name contains "recid", "record_id", or "rowid" (using word boundary regex), THEN the API Analyzer SHALL consider it a primary key candidate
+6. WHEN exactly one field matches the primary key patterns, THEN the API Analyzer SHALL identify it as the primary key
+7. WHEN no fields match the primary key patterns, THEN the API Analyzer SHALL use LLM-based detection to identify the primary key
+8. WHEN multiple fields match the primary key patterns, THEN the API Analyzer SHALL use LLM-based detection to select the most appropriate primary key
+9. WHEN LLM detection fails or is unavailable, THEN the API Analyzer SHALL default to "id" as the primary key
 
 ### Requirement 11: Request Timeouts
 
@@ -166,7 +169,19 @@ The API Analyzer treats OpenAPI specifications as a primary but not guaranteed s
 4. WHEN the payload size limit is configurable via environment variable, THEN the API Analyzer SHALL use that value instead of the default
 5. WHEN a payload size limit is exceeded, THEN the API Analyzer SHALL log the event with the actual payload size
 
-### Requirement 13: Spec Drift Detection and Correction (P1 - Nice to Have)
+### Requirement 13: LLM-Based Display Name Cleaning (Optional Enhancement)
+
+**User Story:** As a user, I want to optionally clean field names using AI, so that legacy field names with abbreviations and prefixes become human-readable.
+
+#### Acceptance Criteria
+
+1. WHEN a user calls `POST /api/clean-names` with `{"resources": [...]}`, THEN the API SHALL use LLM to convert all field and resource display names
+2. WHEN the LLM processes field names, THEN it SHALL remove technical prefixes (fld_, tbl_, col_), version suffixes (_v1, _v2, _new), and expand abbreviations (usr→User, addr→Address, dt→Date)
+3. WHEN the LLM processes field names, THEN it SHALL handle mixed formats (camelCase_with_snake), numbers (email_1→Email), and special characters (user$name→User Name)
+4. WHEN the LLM call succeeds, THEN the API SHALL return the updated ResourceSchema array with cleaned display names
+5. WHEN the LLM call fails, THEN the API SHALL return HTTP 503 with an error message indicating the LLM service is unavailable
+
+### Requirement 14: Spec Drift Detection and Correction (P1 - Nice to Have)
 
 **User Story:** As a developer working with stale documentation, I want the system to detect when OpenAPI specs don't match reality, so that I get accurate schemas even when the docs are outdated.
 

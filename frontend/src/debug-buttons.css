@@ -1,0 +1,10 @@
+/* Clean button and input styles - theme aware */
+
+/* 
+ * REMOVED: Hardcoded white backgrounds and dark text that were breaking spooky theme
+ * The component-level Tailwind classes now handle theming properly
+ */
+
+/* Only apply default styles when NOT in a spooky-themed container */
+/* Light theme defaults - these will be overridden by component classes */
+

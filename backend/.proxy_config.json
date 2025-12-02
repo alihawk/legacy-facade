@@ -1,0 +1,24 @@
+{
+  "baseUrl": "https://jsonplaceholder.typicode.com",
+  "apiType": "rest",
+  "auth": {
+    "mode": "none",
+    "bearerToken": null,
+    "apiKeyHeader": null,
+    "apiKeyValue": null,
+    "basicUser": null,
+    "basicPass": null,
+    "wsseUsername": null,
+    "wssePassword": null
+  },
+  "resources": [
+    {
+      "name": "users",
+      "endpoint": "/users",
+      "operations": {},
+      "fieldMappings": null,
+      "responsePath": null
+    }
+  ],
+  "soapNamespace": null
+}

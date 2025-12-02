@@ -7,7 +7,7 @@ Supports rich type detection including currency, datetime, UUID, URL, phone, etc
 import re
 from typing import Any
 
-import phonenumbers
+# import phonenumbers  # PERFORMANCE: Disabled - expensive validation
 from dateutil import parser as date_parser
 
 
@@ -161,34 +161,35 @@ def _is_url(value: str) -> bool:
     return bool(URL_PATTERN.match(value))
 
 
-def _is_phone(value: str) -> bool:
+def _is_phone(value: str) -> bool:  # noqa: ARG001
     """Check if string matches phone number pattern.
 
-    Uses phonenumbers library for robust international phone detection.
+    PERFORMANCE: Disabled to avoid expensive phonenumbers library validation.
+    Phone fields will be detected as "string" type instead.
 
     Args:
         value: String to check
 
     Returns:
-        True if matches phone pattern
+        Always False (phone detection disabled)
 
     Examples:
         >>> _is_phone("+1-555-123-4567")
-        True
+        False
         >>> _is_phone("not a phone")
         False
     """
-    try:
-        # Try parsing with no default region first
-        parsed = phonenumbers.parse(value, None)
-        return phonenumbers.is_valid_number(parsed)
-    except phonenumbers.NumberParseException:
-        # Try with US as default region for numbers without country code
-        try:
-            parsed = phonenumbers.parse(value, "US")
-            return phonenumbers.is_valid_number(parsed)
-        except phonenumbers.NumberParseException:
-            return False
+    return False
+    # PERFORMANCE: Original implementation disabled
+    # try:
+    #     parsed = phonenumbers.parse(value, None)
+    #     return phonenumbers.is_valid_number(parsed)
+    # except phonenumbers.NumberParseException:
+    #     try:
+    #         parsed = phonenumbers.parse(value, "US")
+    #         return phonenumbers.is_valid_number(parsed)
+    #     except phonenumbers.NumberParseException:
+    #         return False
 
 
 def _is_datetime(value: str) -> bool:
@@ -300,8 +301,9 @@ def infer_field_type(value: Any) -> str:
         if _is_url(value):
             return "url"
 
-        if _is_phone(value):
-            return "phone"
+        # PERFORMANCE: Phone validation skipped (expensive phonenumbers library)
+        # if _is_phone(value):
+        #     return "phone"
 
         # Text vs string based on length (before number coercion)
         if len(value) > 100:
