@@ -1,0 +1,86 @@
+{
+  "baseUrl": "http://localhost:8081",
+  "apiType": "rest",
+  "auth": {
+    "mode": "none",
+    "bearerToken": null,
+    "apiKeyHeader": null,
+    "apiKeyValue": null,
+    "basicUser": null,
+    "basicPass": null,
+    "wsseUsername": null,
+    "wssePassword": null
+  },
+  "resources": [
+    {
+      "name": "departments",
+      "endpoint": "/api/v1/departments",
+      "operations": {
+        "list": {
+          "rest": {
+            "method": "GET",
+            "path": "/api/v1/departments"
+          },
+          "soap": null
+        },
+        "detail": {
+          "rest": {
+            "method": "GET",
+            "path": "/api/v1/departments/{id}"
+          },
+          "soap": null
+        }
+      },
+      "fieldMappings": [],
+      "responsePath": "Data",
+      "primaryKey": null
+    },
+    {
+      "name": "employees",
+      "endpoint": "/api/v1/employees",
+      "operations": {
+        "list": {
+          "rest": {
+            "method": "GET",
+            "path": "/api/v1/employees"
+          },
+          "soap": null
+        },
+        "detail": {
+          "rest": {
+            "method": "GET",
+            "path": "/api/v1/employees/{id}"
+          },
+          "soap": null
+        }
+      },
+      "fieldMappings": [],
+      "responsePath": "Data",
+      "primaryKey": null
+    },
+    {
+      "name": "timeoff",
+      "endpoint": "/api/v1/timeoff",
+      "operations": {
+        "list": {
+          "rest": {
+            "method": "GET",
+            "path": "/api/v1/timeoff"
+          },
+          "soap": null
+        },
+        "detail": {
+          "rest": {
+            "method": "GET",
+            "path": "/api/v1/timeoff/{id}"
+          },
+          "soap": null
+        }
+      },
+      "fieldMappings": [],
+      "responsePath": "Data",
+      "primaryKey": null
+    }
+  ],
+  "soapNamespace": null
+}

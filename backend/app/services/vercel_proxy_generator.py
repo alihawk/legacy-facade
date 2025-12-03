@@ -80,12 +80,50 @@ class VercelProxyGenerator:
         return json.dumps(config, indent=2)
     
     def _generate_proxy_handler(self, proxy_config: Dict[str, Any]) -> str:
-        """Generate main proxy handler with catch-all routing"""
+        """Generate main proxy handler with catch-all routing and mock data fallback"""
         config_json = json.dumps(proxy_config, indent=2)
         
         return f"""const axios = require('axios');
 
 const config = {config_json};
+
+// Mock data generator for demo mode when backend is unreachable
+function generateMockData(resourceName, fields, count = 10) {{
+  const data = [];
+  for (let i = 1; i <= count; i++) {{
+    const item = {{ id: i }};
+    if (fields && fields.length > 0) {{
+      for (const field of fields) {{
+        const name = field.name || field;
+        const type = field.type || 'string';
+        switch (type) {{
+          case 'number':
+          case 'integer':
+            item[name] = Math.floor(Math.random() * 1000);
+            break;
+          case 'boolean':
+            item[name] = Math.random() > 0.5;
+            break;
+          case 'date':
+          case 'datetime':
+            item[name] = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString();
+            break;
+          case 'email':
+            item[name] = `user${{i}}@example.com`;
+            break;
+          default:
+            item[name] = `Sample ${{name}} ${{i}}`;
+        }}
+      }}
+    }} else {{
+      item.name = `${{resourceName}} Item ${{i}}`;
+      item.description = `This is a demo ${{resourceName}} record`;
+      item.createdAt = new Date().toISOString();
+    }}
+    data.push(item);
+  }}
+  return data;
+}}
 
 module.exports = async (req, res) => {{
   // Enable CORS
@@ -97,49 +135,48 @@ module.exports = async (req, res) => {{
     return res.status(200).end();
   }}
   
+  // Extract resource and ID from URL path
+  const url = req.url || '';
+  const pathMatch = url.match(/\\/api\\/proxy\\/([^\\/\\?]+)(?:\\/([^\\/\\?]+))?/);
+  
+  if (!pathMatch) {{
+    return res.status(400).json({{ 
+      error: 'Invalid path',
+      message: 'Expected /api/proxy/{{resource}} or /api/proxy/{{resource}}/{{id}}',
+      receivedUrl: url
+    }});
+  }}
+  
+  const resourceName = pathMatch[1];
+  const resourceId = pathMatch[2];
+  
+  // Find resource config
+  const resource = config.resources?.find(r => r.name === resourceName);
+  if (!resource) {{
+    return res.status(404).json({{ 
+      error: 'Resource not found',
+      message: `Resource '${{resourceName}}' is not configured`,
+      availableResources: config.resources?.map(r => r.name) || []
+    }});
+  }}
+  
+  // Determine operation based on method and presence of ID
+  let operation;
+  if (req.method === 'GET' && resourceId) {{
+    operation = 'detail';
+  }} else if (req.method === 'GET') {{
+    operation = 'list';
+  }} else if (req.method === 'POST') {{
+    operation = 'create';
+  }} else if (req.method === 'PUT' || req.method === 'PATCH') {{
+    operation = 'update';
+  }} else if (req.method === 'DELETE') {{
+    operation = 'delete';
+  }} else {{
+    return res.status(405).json({{ error: 'Method not allowed' }});
+  }}
+  
   try {{
-    // Extract resource and ID from URL path
-    // URL format: /api/proxy/resourceName or /api/proxy/resourceName/id
-    const url = req.url || '';
-    const pathMatch = url.match(/\\/api\\/proxy\\/([^\\/\\?]+)(?:\\/([^\\/\\?]+))?/);
-    
-    if (!pathMatch) {{
-      return res.status(400).json({{ 
-        error: 'Invalid path',
-        message: 'Expected /api/proxy/{{resource}} or /api/proxy/{{resource}}/{{id}}',
-        receivedUrl: url
-      }});
-    }}
-    
-    const resourceName = pathMatch[1];
-    const resourceId = pathMatch[2];
-    
-    // Find resource config
-    const resource = config.resources?.find(r => r.name === resourceName);
-    if (!resource) {{
-      return res.status(404).json({{ 
-        error: 'Resource not found',
-        message: `Resource '${{resourceName}}' is not configured`,
-        availableResources: config.resources?.map(r => r.name) || []
-      }});
-    }}
-    
-    // Determine operation based on method and presence of ID
-    let operation;
-    if (req.method === 'GET' && resourceId) {{
-      operation = 'detail';
-    }} else if (req.method === 'GET') {{
-      operation = 'list';
-    }} else if (req.method === 'POST') {{
-      operation = 'create';
-    }} else if (req.method === 'PUT' || req.method === 'PATCH') {{
-      operation = 'update';
-    }} else if (req.method === 'DELETE') {{
-      operation = 'delete';
-    }} else {{
-      return res.status(405).json({{ error: 'Method not allowed' }});
-    }}
-    
     // Build target URL using endpoint or heuristics
     let targetPath = resource.endpoint || `/${{resourceName}}`;
     
@@ -194,7 +231,7 @@ module.exports = async (req, res) => {{
       data: requestBody,
       params: req.query,
       validateStatus: () => true,
-      timeout: 30000
+      timeout: 15000
     }});
     
     // Get response data
@@ -220,20 +257,56 @@ module.exports = async (req, res) => {{
     return res.status(response.status).json(responseData);
     
   }} catch (error) {{
-    console.error('Proxy error:', error.message);
+    console.error('Proxy error:', error.message, error.code);
     
-    if (error.code === 'ECONNREFUSED') {{
-      return res.status(503).json({{ 
-        error: 'Backend unavailable',
-        message: 'Could not connect to legacy API'
-      }});
-    }}
+    // Check if backend is unreachable - fall back to mock data for demo
+    const isUnreachable = error.code === 'ECONNREFUSED' || 
+                          error.code === 'ENOTFOUND' || 
+                          error.code === 'ETIMEDOUT' || 
+                          error.code === 'ECONNABORTED' ||
+                          error.code === 'EAI_AGAIN' ||
+                          error.message?.includes('getaddrinfo');
     
-    if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {{
-      return res.status(504).json({{ 
-        error: 'Timeout',
-        message: 'Legacy API did not respond in time'
-      }});
+    if (isUnreachable) {{
+      console.log(`Backend unreachable, returning mock data for ${{resourceName}}`);
+      
+      // Generate mock data based on resource fields
+      const mockData = generateMockData(resourceName, resource.fields, 15);
+      
+      if (operation === 'list') {{
+        return res.status(200).json({{
+          data: mockData,
+          _mock: true,
+          _message: 'Demo mode: Backend API is not accessible. Showing sample data.'
+        }});
+      }} else if (operation === 'detail' && resourceId) {{
+        const item = mockData.find(d => String(d.id) === String(resourceId)) || mockData[0];
+        return res.status(200).json({{
+          ...item,
+          _mock: true,
+          _message: 'Demo mode: Backend API is not accessible. Showing sample data.'
+        }});
+      }} else if (operation === 'create') {{
+        return res.status(201).json({{
+          id: Date.now(),
+          ...req.body,
+          _mock: true,
+          _message: 'Demo mode: Record not actually created (backend unavailable)'
+        }});
+      }} else if (operation === 'update') {{
+        return res.status(200).json({{
+          id: resourceId,
+          ...req.body,
+          _mock: true,
+          _message: 'Demo mode: Record not actually updated (backend unavailable)'
+        }});
+      }} else if (operation === 'delete') {{
+        return res.status(200).json({{
+          success: true,
+          _mock: true,
+          _message: 'Demo mode: Record not actually deleted (backend unavailable)'
+        }});
+      }}
     }}
     
     return res.status(500).json({{ 

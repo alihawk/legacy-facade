@@ -31,7 +31,7 @@ export default function Dashboard({ resources, isSpooky = false }: DashboardProp
     return sum
   }, 0)
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/proxy'
+  const API_URL = import.meta.env.VITE_PROXY_URL || 'http://localhost:4000/proxy'
 
   useEffect(() => {
     fetchDashboardData()
@@ -44,8 +44,26 @@ export default function Dashboard({ resources, isSpooky = false }: DashboardProp
     for (const resource of resources) {
       try {
         const response = await fetch(\`\${API_URL}/\${resource.name}\`)
-        const data = await response.json()
-        counts[resource.name] = Array.isArray(data) ? data.length : 0
+        const responseData = await response.json()
+        
+        // Handle multiple response formats
+        let extractedData: any[] = []
+        if (Array.isArray(responseData)) {
+          extractedData = responseData
+        } else if (responseData?.data && Array.isArray(responseData.data)) {
+          extractedData = responseData.data
+        } else if (responseData?.Data && Array.isArray(responseData.Data)) {
+          extractedData = responseData.Data
+        } else if (responseData?.items && Array.isArray(responseData.items)) {
+          extractedData = responseData.items
+        } else if (responseData?.results && Array.isArray(responseData.results)) {
+          extractedData = responseData.results
+        } else if (typeof responseData === 'object' && responseData !== null) {
+          const arrayProp = Object.values(responseData).find(v => Array.isArray(v))
+          if (arrayProp) extractedData = arrayProp as any[]
+        }
+        
+        counts[resource.name] = extractedData.length
       } catch (error) {
         counts[resource.name] = Math.floor(Math.random() * 100) + 10
       }

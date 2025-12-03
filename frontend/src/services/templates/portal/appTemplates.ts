@@ -4,10 +4,10 @@
 
 export const appTsxTemplate = (schemas: any[]): string => {
   const routes = schemas.map(schema => `
-            <Route path="${schema.name}" element={<ResourceListWrapper resources={resources} isSpooky={isSpookyTheme} />} />
-            <Route path="${schema.name}/new" element={<ResourceFormWrapper resources={resources} mode="create" />} />
-            <Route path="${schema.name}/:id" element={<ResourceDetailWrapper resources={resources} />} />
-            <Route path="${schema.name}/:id/edit" element={<ResourceFormWrapper resources={resources} mode="edit" />} />`
+            <Route path="${schema.name}" element={<ResourceListWrapper resources={resources} isSpooky={isSpookyTheme} resourceName="${schema.name}" />} />
+            <Route path="${schema.name}/new" element={<ResourceFormWrapper resources={resources} mode="create" resourceName="${schema.name}" />} />
+            <Route path="${schema.name}/:id" element={<ResourceDetailWrapper resources={resources} resourceName="${schema.name}" />} />
+            <Route path="${schema.name}/:id/edit" element={<ResourceFormWrapper resources={resources} mode="edit" resourceName="${schema.name}" />} />`
   ).join('')
 
   return `import { useState, useEffect } from "react"
@@ -88,15 +88,14 @@ export default function App() {
 }
 
 // Wrapper components to extract params
-function ResourceListWrapper({ resources, isSpooky }: { resources: ResourceSchema[], isSpooky: boolean }) {
-  const { resourceName } = useParams()
+function ResourceListWrapper({ resources, isSpooky, resourceName }: { resources: ResourceSchema[], isSpooky: boolean, resourceName: string }) {
   const resource = resources.find((r) => r.name === resourceName)
   if (!resource) return <div className={isSpooky ? "text-gray-400" : "text-gray-600"}>Resource not found</div>
   return <ResourceList resource={resource} isSpooky={isSpooky} />
 }
 
-function ResourceDetailWrapper({ resources }: { resources: ResourceSchema[] }) {
-  const { resourceName, id } = useParams()
+function ResourceDetailWrapper({ resources, resourceName }: { resources: ResourceSchema[], resourceName: string }) {
+  const { id } = useParams()
   const navigate = useNavigate()
   const resource = resources.find((r) => r.name === resourceName)
   if (!resource || !id) return <div className="text-gray-600">Resource not found</div>
@@ -106,11 +105,13 @@ function ResourceDetailWrapper({ resources }: { resources: ResourceSchema[] }) {
 function ResourceFormWrapper({
   resources,
   mode,
+  resourceName,
 }: {
   resources: ResourceSchema[]
   mode: "create" | "edit"
+  resourceName: string
 }) {
-  const { resourceName, id } = useParams()
+  const { id } = useParams()
   const navigate = useNavigate()
   const resource = resources.find((r) => r.name === resourceName)
   if (!resource) return <div className="text-gray-600">Resource not found</div>

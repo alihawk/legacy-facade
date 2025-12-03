@@ -222,8 +222,21 @@ function Dashboard({{ isDark }}: {{ isDark: boolean }}) {{
       for (const resource of RESOURCES) {{
         try {{
           const res = await axios.get(`${{PROXY_URL}}/api/proxy/${{resource.name}}`)
-          const data = res.data.data || res.data || []
-          newCounts[resource.name] = Array.isArray(data) ? data.length : 0
+          const responseData = res.data
+          let extractedData: any[] = []
+          if (Array.isArray(responseData)) {{
+            extractedData = responseData
+          }} else if (responseData?.data && Array.isArray(responseData.data)) {{
+            extractedData = responseData.data
+          }} else if (responseData?.Data && Array.isArray(responseData.Data)) {{
+            extractedData = responseData.Data
+          }} else if (responseData?.items && Array.isArray(responseData.items)) {{
+            extractedData = responseData.items
+          }} else if (typeof responseData === 'object' && responseData !== null) {{
+            const arrayProp = Object.values(responseData).find(v => Array.isArray(v))
+            if (arrayProp) extractedData = arrayProp as any[]
+          }}
+          newCounts[resource.name] = extractedData.length
         }} catch {{
           newCounts[resource.name] = Math.floor(Math.random() * 50) + 5
         }}

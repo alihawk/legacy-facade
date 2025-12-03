@@ -91,7 +91,7 @@ async def proxy_list(resource: str, request: Request) -> JSONResponse:
     Forwards a list request to the legacy API, applying authentication,
     field mapping, and response normalization.
     
-    Falls back to mock data if proxy is not configured.
+    Falls back to mock data if proxy is not configured or resource not found.
     
     Args:
         resource: Resource name (e.g., "users", "orders")
@@ -110,15 +110,36 @@ async def proxy_list(resource: str, request: Request) -> JSONResponse:
             headers=_build_cors_headers()
         )
     
+    # Check if resource exists in config (case-insensitive)
+    resource_config = proxy_config_manager.get_resource_config(resource.lower())
+    if not resource_config:
+        # Resource not in config - return mock data for demo purposes
+        mock_data = _get_mock_data(resource)
+        return JSONResponse(
+            content={"data": mock_data},
+            status_code=200,
+            headers=_build_cors_headers()
+        )
+    
     # Extract query parameters
     query_params = dict(request.query_params)
     
     # Forward request to legacy API
-    status_code, data = await forward_request(
-        resource=resource,
-        operation="list",
-        query_params=query_params if query_params else None
-    )
+    try:
+        status_code, data = await forward_request(
+            resource=resource.lower(),
+            operation="list",
+            query_params=query_params if query_params else None
+        )
+    except Exception as e:
+        # If forwarding fails, fall back to mock data
+        print(f"Proxy forward failed for {resource}: {e}")
+        mock_data = _get_mock_data(resource)
+        return JSONResponse(
+            content={"data": mock_data},
+            status_code=200,
+            headers=_build_cors_headers()
+        )
     
     # Return response with CORS headers
     return JSONResponse(
@@ -133,7 +154,7 @@ async def proxy_detail(resource: str, id: str) -> JSONResponse:
     """Get a single record by ID.
     
     Forwards a detail request to the legacy API.
-    Falls back to mock data if proxy is not configured.
+    Falls back to mock data if proxy is not configured or resource not found.
     
     Args:
         resource: Resource name
@@ -142,20 +163,37 @@ async def proxy_detail(resource: str, id: str) -> JSONResponse:
     Returns:
         JSONResponse with single record or error
     """
-    # Check if proxy is configured
-    if not proxy_config_manager.is_configured():
-        # Return mock data as fallback
+    # Helper to get mock record
+    def get_mock_record():
         mock_data = _get_mock_data(resource)
         pk_field = _get_primary_key(resource)
-        
-        # Try to find the record by ID
         try:
             id_val = int(id) if id.isdigit() else id
         except (ValueError, AttributeError):
             id_val = id
-            
-        record = next((item for item in mock_data if item.get(pk_field) == id_val or item.get("id") == id_val), None)
-        
+        return next((item for item in mock_data if item.get(pk_field) == id_val or item.get("id") == id_val), None)
+    
+    # Check if proxy is configured
+    if not proxy_config_manager.is_configured():
+        record = get_mock_record()
+        if record:
+            return JSONResponse(
+                content={"data": record},
+                status_code=200,
+                headers=_build_cors_headers()
+            )
+        else:
+            return JSONResponse(
+                content={"error": f"{resource} with id {id} not found"},
+                status_code=404,
+                headers=_build_cors_headers()
+            )
+    
+    # Check if resource exists in config (case-insensitive)
+    resource_config = proxy_config_manager.get_resource_config(resource.lower())
+    if not resource_config:
+        # Resource not in config - return mock data
+        record = get_mock_record()
         if record:
             return JSONResponse(
                 content={"data": record},
@@ -170,11 +208,28 @@ async def proxy_detail(resource: str, id: str) -> JSONResponse:
             )
     
     # Forward request to legacy API
-    status_code, data = await forward_request(
-        resource=resource,
-        operation="detail",
-        id=id
-    )
+    try:
+        status_code, data = await forward_request(
+            resource=resource.lower(),
+            operation="detail",
+            id=id
+        )
+    except Exception as e:
+        # If forwarding fails, fall back to mock data
+        print(f"Proxy forward failed for {resource}/{id}: {e}")
+        record = get_mock_record()
+        if record:
+            return JSONResponse(
+                content={"data": record},
+                status_code=200,
+                headers=_build_cors_headers()
+            )
+        else:
+            return JSONResponse(
+                content={"error": f"{resource} with id {id} not found"},
+                status_code=404,
+                headers=_build_cors_headers()
+            )
     
     # Return response with CORS headers
     return JSONResponse(
@@ -189,7 +244,7 @@ async def proxy_create(resource: str, request: Request) -> JSONResponse:
     """Create a new record.
     
     Forwards a create request to the legacy API with the provided data.
-    Falls back to mock response if proxy is not configured.
+    Falls back to mock response if proxy is not configured or resource not found.
     
     Args:
         resource: Resource name
@@ -204,9 +259,8 @@ async def proxy_create(resource: str, request: Request) -> JSONResponse:
     except Exception:
         body = {}
     
-    # Check if proxy is configured
-    if not proxy_config_manager.is_configured():
-        # Return mock created response
+    # Helper to create mock response
+    def mock_create_response():
         pk_field = _get_primary_key(resource)
         import random
         new_id = random.randint(10000, 99999)
@@ -217,12 +271,25 @@ async def proxy_create(resource: str, request: Request) -> JSONResponse:
             headers=_build_cors_headers()
         )
     
+    # Check if proxy is configured
+    if not proxy_config_manager.is_configured():
+        return mock_create_response()
+    
+    # Check if resource exists in config
+    resource_config = proxy_config_manager.get_resource_config(resource.lower())
+    if not resource_config:
+        return mock_create_response()
+    
     # Forward request to legacy API
-    status_code, data = await forward_request(
-        resource=resource,
-        operation="create",
-        body=body
-    )
+    try:
+        status_code, data = await forward_request(
+            resource=resource.lower(),
+            operation="create",
+            body=body
+        )
+    except Exception as e:
+        print(f"Proxy create failed for {resource}: {e}")
+        return mock_create_response()
     
     # Return response with CORS headers
     return JSONResponse(
@@ -237,7 +304,7 @@ async def proxy_update(resource: str, id: str, request: Request) -> JSONResponse
     """Update an existing record.
     
     Forwards an update request to the legacy API with the provided data.
-    Falls back to mock response if proxy is not configured.
+    Falls back to mock response if proxy is not configured or resource not found.
     
     Args:
         resource: Resource name
@@ -253,9 +320,8 @@ async def proxy_update(resource: str, id: str, request: Request) -> JSONResponse
     except Exception:
         body = {}
     
-    # Check if proxy is configured
-    if not proxy_config_manager.is_configured():
-        # Return mock updated response
+    # Helper to create mock response
+    def mock_update_response():
         pk_field = _get_primary_key(resource)
         try:
             id_val = int(id) if id.isdigit() else id
@@ -268,13 +334,26 @@ async def proxy_update(resource: str, id: str, request: Request) -> JSONResponse
             headers=_build_cors_headers()
         )
     
+    # Check if proxy is configured
+    if not proxy_config_manager.is_configured():
+        return mock_update_response()
+    
+    # Check if resource exists in config
+    resource_config = proxy_config_manager.get_resource_config(resource.lower())
+    if not resource_config:
+        return mock_update_response()
+    
     # Forward request to legacy API
-    status_code, data = await forward_request(
-        resource=resource,
-        operation="update",
-        id=id,
-        body=body
-    )
+    try:
+        status_code, data = await forward_request(
+            resource=resource.lower(),
+            operation="update",
+            id=id,
+            body=body
+        )
+    except Exception as e:
+        print(f"Proxy update failed for {resource}/{id}: {e}")
+        return mock_update_response()
     
     # Return response with CORS headers
     return JSONResponse(
@@ -289,7 +368,7 @@ async def proxy_delete(resource: str, id: str) -> JSONResponse:
     """Delete a record.
     
     Forwards a delete request to the legacy API.
-    Falls back to mock response if proxy is not configured.
+    Falls back to mock response if proxy is not configured or resource not found.
     
     Args:
         resource: Resource name
@@ -298,21 +377,33 @@ async def proxy_delete(resource: str, id: str) -> JSONResponse:
     Returns:
         JSONResponse with success message or error
     """
-    # Check if proxy is configured
-    if not proxy_config_manager.is_configured():
-        # Return mock delete response
+    # Helper for mock response
+    def mock_delete_response():
         return JSONResponse(
             content={"status": "ok", "message": f"Record {id} deleted (mock)"},
             status_code=200,
             headers=_build_cors_headers()
         )
     
+    # Check if proxy is configured
+    if not proxy_config_manager.is_configured():
+        return mock_delete_response()
+    
+    # Check if resource exists in config
+    resource_config = proxy_config_manager.get_resource_config(resource.lower())
+    if not resource_config:
+        return mock_delete_response()
+    
     # Forward request to legacy API
-    status_code, data = await forward_request(
-        resource=resource,
-        operation="delete",
-        id=id
-    )
+    try:
+        status_code, data = await forward_request(
+            resource=resource.lower(),
+            operation="delete",
+            id=id
+        )
+    except Exception as e:
+        print(f"Proxy delete failed for {resource}/{id}: {e}")
+        return mock_delete_response()
     
     # Return response with CORS headers
     return JSONResponse(

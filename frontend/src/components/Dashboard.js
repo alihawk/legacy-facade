@@ -34,8 +34,32 @@ export default function Dashboard({ resources, customization, isSpooky = false }
         for (const resource of resources) {
             try {
                 const response = await axios.get(`http://localhost:8000/proxy/${resource.name}`);
-                const data = response.data.data || [];
-                counts[resource.name] = data.length;
+                // Handle multiple response formats
+                const responseData = response.data;
+                let extractedData = [];
+                if (Array.isArray(responseData)) {
+                    extractedData = responseData;
+                }
+                else if (responseData?.data && Array.isArray(responseData.data)) {
+                    extractedData = responseData.data;
+                }
+                else if (responseData?.Data && Array.isArray(responseData.Data)) {
+                    extractedData = responseData.Data;
+                }
+                else if (responseData?.items && Array.isArray(responseData.items)) {
+                    extractedData = responseData.items;
+                }
+                else if (responseData?.results && Array.isArray(responseData.results)) {
+                    extractedData = responseData.results;
+                }
+                else if (typeof responseData === 'object' && responseData !== null) {
+                    // Check if any property is an array
+                    const arrayProp = Object.values(responseData).find(v => Array.isArray(v));
+                    if (arrayProp) {
+                        extractedData = arrayProp;
+                    }
+                }
+                counts[resource.name] = extractedData.length;
             }
             catch (error) {
                 // Use mock data on error

@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Rocket, Loader2, ExternalLink, X, CheckCircle2, AlertCircle } from "lucide-react";
-import { projectGenerator } from "@/services/ProjectGenerator";
-import JSZip from "jszip";
+import { Rocket, Loader2, ExternalLink, CheckCircle2, AlertCircle } from "lucide-react";
 
 interface DeployToVercelButtonProps {
   resources: any[];
@@ -48,33 +46,8 @@ export function DeployToVercelButton({ resources, proxyConfig, className, isSpoo
     setDeploymentResult({});
     
     try {
-      // Generate the full project ZIP
-      const zipBlob = await projectGenerator.generate(
-        resources,
-        "http://localhost:8000",
-        proxyConfig
-      );
-      
-      // Extract frontend files from ZIP
-      const zip = await JSZip.loadAsync(zipBlob);
-      const frontendFiles: Record<string, string> = {};
-      
-      // Get all files from the frontend/ folder
-      const frontendFolder = zip.folder("frontend");
-      if (frontendFolder) {
-        const promises: Promise<void>[] = [];
-        frontendFolder.forEach((relativePath, file) => {
-          if (!file.dir) {
-            promises.push(
-              file.async("string").then((content) => {
-                frontendFiles[relativePath] = content;
-              })
-            );
-          }
-        });
-        await Promise.all(promises);
-      }
-      
+      // Don't send frontend_files - let the backend generate fresh files
+      // with the correct Vercel proxy URL baked in
       const response = await fetch("http://localhost:8000/api/deploy/vercel", {
         method: "POST",
         headers: {
@@ -84,7 +57,7 @@ export function DeployToVercelButton({ resources, proxyConfig, className, isSpoo
           token: deployToken,
           resources,
           proxy_config: proxyConfig || {},
-          frontend_files: frontendFiles,
+          // frontend_files omitted - backend will generate with correct proxy URL
           project_name: "admin-portal"
         }),
       });
@@ -190,6 +163,26 @@ export function DeployToVercelButton({ resources, proxyConfig, className, isSpoo
                     className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 ${isSpooky ? 'border-cyan-500/30 text-cyan-400 bg-slate-800 focus:ring-cyan-500/30' : 'border-gray-300 text-gray-900 bg-white focus:ring-cyan-500'}`}
                     autoFocus
                   />
+                </div>
+
+                {/* Warning about local APIs */}
+                <div className={`rounded-md p-3 ${isSpooky ? 'bg-amber-900/20 border border-amber-500/30' : 'bg-amber-50 border border-amber-200'}`}>
+                  <p className={`text-sm font-medium mb-2 flex items-center gap-2 ${isSpooky ? 'text-amber-400' : 'text-amber-800'}`}>
+                    <AlertCircle className="w-4 h-4" />
+                    Running a local API?
+                  </p>
+                  <p className={`text-xs mb-2 ${isSpooky ? 'text-amber-300/80' : 'text-amber-700'}`}>
+                    Vercel can't access <code className="px-1 py-0.5 rounded bg-amber-100 text-amber-800">localhost</code>. To connect your local API:
+                  </p>
+                  <ol className={`text-xs space-y-1 ml-4 list-decimal ${isSpooky ? 'text-amber-300/80' : 'text-amber-700'}`}>
+                    <li>Use <a href="https://ngrok.com" target="_blank" rel="noopener noreferrer" className="underline font-medium">ngrok</a> to expose your API: <code className="px-1 py-0.5 rounded bg-amber-100 text-amber-800">ngrok http 8081</code></li>
+                    <li>Copy the public URL (e.g., <code className="px-1 py-0.5 rounded bg-amber-100 text-amber-800">https://abc123.ngrok.io</code>)</li>
+                    <li>Re-analyze your API using that URL</li>
+                    <li>Then deploy to Vercel</li>
+                  </ol>
+                  <p className={`text-xs mt-2 ${isSpooky ? 'text-amber-400/70' : 'text-amber-600'}`}>
+                    <strong>Or:</strong> Deploy anyway to see a demo with mock data.
+                  </p>
                 </div>
 
                 <div className={`rounded-md p-3 ${isSpooky ? 'bg-violet-900/20 border border-violet-500/30' : 'bg-blue-50 border border-blue-200'}`}>

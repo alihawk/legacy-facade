@@ -36,6 +36,33 @@ export default function Dashboard({ resources, customization, isSpooky = false }
     fetchDashboardData()
   }, [resources])
 
+  const extractDataArray = (responseData: any): any[] => {
+    // Direct array
+    if (Array.isArray(responseData)) {
+      return responseData
+    }
+    
+    if (typeof responseData === 'object' && responseData !== null) {
+      // Common wrapper properties (case-insensitive check)
+      const wrapperKeys = ['data', 'Data', 'items', 'Items', 'results', 'Results', 'records', 'Records', 'rows', 'Rows', 'content', 'Content']
+      
+      for (const key of wrapperKeys) {
+        if (responseData[key] && Array.isArray(responseData[key])) {
+          return responseData[key]
+        }
+      }
+      
+      // Check any property that is an array
+      for (const value of Object.values(responseData)) {
+        if (Array.isArray(value) && value.length > 0) {
+          return value
+        }
+      }
+    }
+    
+    return []
+  }
+
   const fetchDashboardData = async () => {
     setLoading(true)
     const counts: Record<string, number> = {}
@@ -44,9 +71,11 @@ export default function Dashboard({ resources, customization, isSpooky = false }
     for (const resource of resources) {
       try {
         const response = await axios.get(`http://localhost:8000/proxy/${resource.name}`)
-        const data = response.data.data || []
-        counts[resource.name] = data.length
+        const extractedData = extractDataArray(response.data)
+        counts[resource.name] = extractedData.length
+        console.log(`[Dashboard] ${resource.name}: found ${extractedData.length} records`, response.data)
       } catch (error) {
+        console.warn(`[Dashboard] Failed to fetch ${resource.name}, using mock count`, error)
         // Use mock data on error
         counts[resource.name] = Math.floor(Math.random() * 100) + 10
       }
