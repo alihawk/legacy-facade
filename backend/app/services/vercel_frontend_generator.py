@@ -312,13 +312,14 @@ function Dashboard({{ isDark }}: {{ isDark: boolean }}) {{
   )
 }}
 
-// Resource List Component
+// Resource List Component with Select All
 function ResourceList({{ isDark }}: {{ isDark: boolean }}) {{
   const {{ resourceName }} = useParams()
   const navigate = useNavigate()
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   
   const resource = RESOURCES.find((r: any) => r.name === resourceName)
   
@@ -326,7 +327,21 @@ function ResourceList({{ isDark }}: {{ isDark: boolean }}) {{
     const fetchData = async () => {{
       try {{
         const response = await axios.get(`${{PROXY_URL}}/api/proxy/${{resourceName}}`)
-        setData(response.data.data || response.data || [])
+        const responseData = response.data
+        let extractedData: any[] = []
+        if (Array.isArray(responseData)) {{
+          extractedData = responseData
+        }} else if (responseData?.data && Array.isArray(responseData.data)) {{
+          extractedData = responseData.data
+        }} else if (responseData?.Data && Array.isArray(responseData.Data)) {{
+          extractedData = responseData.Data
+        }} else if (responseData?.items && Array.isArray(responseData.items)) {{
+          extractedData = responseData.items
+        }} else if (typeof responseData === 'object' && responseData !== null) {{
+          const arrayProp = Object.values(responseData).find(v => Array.isArray(v))
+          if (arrayProp) extractedData = arrayProp as any[]
+        }}
+        setData(extractedData)
       }} catch (err: any) {{
         setError(err.message || 'Failed to fetch data')
       }} finally {{
@@ -334,6 +349,7 @@ function ResourceList({{ isDark }}: {{ isDark: boolean }}) {{
       }}
     }}
     fetchData()
+    setSelectedIds(new Set())
   }}, [resourceName])
   
   if (loading) return <div className={{`p-8 ${{isDark ? 'text-gray-400' : 'text-gray-500'}}`}}>Loading...</div>
@@ -342,6 +358,31 @@ function ResourceList({{ isDark }}: {{ isDark: boolean }}) {{
   
   const fields = resource.fields?.slice(0, 5) || []
   const pk = resource.primaryKey || 'id'
+  
+  const allSelected = data.length > 0 && selectedIds.size === data.length
+  const someSelected = selectedIds.size > 0 && selectedIds.size < data.length
+  
+  const handleSelectAll = () => {{
+    // Toggle: if all are selected, deselect all; otherwise select all
+    const allIds = data.map((item: any) => String(item[pk] ?? item.id))
+    const isAllSelected = allIds.length > 0 && allIds.every((id: string) => selectedIds.has(id))
+    
+    if (isAllSelected) {{
+      setSelectedIds(new Set())
+    }} else {{
+      setSelectedIds(new Set(allIds))
+    }}
+  }}
+  
+  const toggleSelectItem = (id: string) => {{
+    const newSelected = new Set(selectedIds)
+    if (newSelected.has(id)) {{
+      newSelected.delete(id)
+    }} else {{
+      newSelected.add(id)
+    }}
+    setSelectedIds(newSelected)
+  }}
   
   return (
     <div className="space-y-6">
@@ -352,10 +393,34 @@ function ResourceList({{ isDark }}: {{ isDark: boolean }}) {{
         </button>
       </div>
       
+      {{/* Bulk Actions Bar */}}
+      {{selectedIds.size > 0 && (
+        <div className={{`flex items-center gap-4 px-4 py-3 rounded-xl ${{isDark ? 'bg-cyan-500/20 border border-cyan-500/30' : 'bg-indigo-50 border border-indigo-200'}}`}}>
+          <span className={{`text-sm font-medium ${{isDark ? 'text-cyan-400' : 'text-indigo-700'}}`}}>
+            {{selectedIds.size}} item(s) selected
+          </span>
+          <button
+            onClick={{() => setSelectedIds(new Set())}}
+            className={{`text-sm px-3 py-1 rounded-lg ${{isDark ? 'text-gray-400 hover:bg-slate-700' : 'text-gray-600 hover:bg-gray-100'}}`}}
+          >
+            Clear Selection
+          </button>
+        </div>
+      )}}
+      
       <div className={{`rounded-xl shadow-md overflow-hidden ${{isDark ? 'bg-slate-900 border border-cyan-500/30' : 'bg-white'}}`}}>
         <table className="min-w-full divide-y divide-gray-200">
           <thead className={{isDark ? 'bg-slate-800' : 'bg-gray-50'}}>
             <tr>
+              <th className="w-12 px-6 py-3">
+                <input
+                  type="checkbox"
+                  checked={{allSelected}}
+                  ref={{(el) => {{ if (el) el.indeterminate = someSelected }}}}
+                  onChange={{handleSelectAll}}
+                  className={{`w-4 h-4 rounded cursor-pointer ${{isDark ? 'bg-slate-700 border-cyan-500/50' : 'border-gray-300'}}`}}
+                />
+              </th>
               <th className={{`px-6 py-3 text-left text-xs font-medium uppercase ${{isDark ? 'text-cyan-400' : 'text-gray-500'}}`}}>ID</th>
               {{fields.map((field: any) => (
                 <th key={{field.name}} className={{`px-6 py-3 text-left text-xs font-medium uppercase ${{isDark ? 'text-cyan-400' : 'text-gray-500'}}`}}>
@@ -365,18 +430,30 @@ function ResourceList({{ isDark }}: {{ isDark: boolean }}) {{
             </tr>
           </thead>
           <tbody className={{`divide-y ${{isDark ? 'divide-slate-700' : 'divide-gray-200'}}`}}>
-            {{data.map((item: any, idx: number) => (
-              <tr key={{item[pk] || idx}} className={{isDark ? 'hover:bg-slate-800' : 'hover:bg-gray-50'}}>
-                <td className={{`px-6 py-4 whitespace-nowrap text-sm font-medium ${{isDark ? 'text-cyan-400' : 'text-gray-900'}}`}}>
-                  #{{item[pk] || idx + 1}}
-                </td>
-                {{fields.map((field: any) => (
-                  <td key={{field.name}} className={{`px-6 py-4 whitespace-nowrap text-sm ${{isDark ? 'text-gray-300' : 'text-gray-500'}}`}}>
-                    {{String(item[field.name] ?? '-')}}
+            {{data.map((item: any, idx: number) => {{
+              const itemId = String(item[pk] ?? idx)
+              const isSelected = selectedIds.has(itemId)
+              return (
+                <tr key={{itemId}} className={{`${{isDark ? 'hover:bg-slate-800' : 'hover:bg-gray-50'}} ${{isSelected ? (isDark ? 'bg-cyan-500/10' : 'bg-indigo-50') : ''}}`}}>
+                  <td className="px-6 py-4" onClick={{(e) => e.stopPropagation()}}>
+                    <input
+                      type="checkbox"
+                      checked={{isSelected}}
+                      onChange={{() => toggleSelectItem(itemId)}}
+                      className={{`w-4 h-4 rounded cursor-pointer ${{isDark ? 'bg-slate-700 border-cyan-500/50' : 'border-gray-300'}}`}}
+                    />
                   </td>
-                ))}}
-              </tr>
-            ))}}
+                  <td className={{`px-6 py-4 whitespace-nowrap text-sm font-medium ${{isDark ? 'text-cyan-400' : 'text-gray-900'}}`}}>
+                    #{{item[pk] || idx + 1}}
+                  </td>
+                  {{fields.map((field: any) => (
+                    <td key={{field.name}} className={{`px-6 py-4 whitespace-nowrap text-sm ${{isDark ? 'text-gray-300' : 'text-gray-500'}}`}}>
+                      {{String(item[field.name] ?? '-')}}
+                    </td>
+                  ))}}
+                </tr>
+              )
+            }})}}
           </tbody>
         </table>
       </div>

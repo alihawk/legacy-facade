@@ -57,11 +57,15 @@ export default function ResourceList({ resource, isSpooky = false }: ResourceLis
     })
   })
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedIds(new Set(filteredData.map(item => String(item[resource.primaryKey] ?? item.id))))
-    } else {
+  const handleSelectAll = () => {
+    // Toggle: if all are selected, deselect all; otherwise select all
+    const allIds = filteredData.map(item => String(item[resource.primaryKey] ?? item.id))
+    const isAllSelected = allIds.length > 0 && allIds.every(id => selectedIds.has(id))
+    
+    if (isAllSelected) {
       setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(allIds))
     }
   }
 
@@ -135,8 +139,8 @@ export default function ResourceList({ resource, isSpooky = false }: ResourceLis
                   type="checkbox"
                   checked={allSelected}
                   ref={(el) => { if (el) el.indeterminate = someSelected }}
-                  onChange={(e) => handleSelectAll(e.target.checked)}
-                  className={\`w-4 h-4 rounded \${isSpooky ? 'bg-slate-700 border-cyan-500/50' : 'border-gray-300'}\`}
+                  onChange={() => handleSelectAll()}
+                  className={\`w-4 h-4 rounded cursor-pointer \${isSpooky ? 'bg-slate-700 border-cyan-500/50' : 'border-gray-300'}\`}
                 />
               </TableHead>
               <TableHead className={isSpooky ? 'text-cyan-400' : ''}>ID</TableHead>

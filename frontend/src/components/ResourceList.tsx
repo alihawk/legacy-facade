@@ -193,15 +193,16 @@ export default function ResourceList({ resource, isSpooky = false, customization
     navigate(`/portal/${resource.name}/${id}`)
   }
 
-  // Bulk selection handlers
-  const handleSelectAll = (checked: boolean | "indeterminate") => {
-    if (checked === true) {
-      // Select all items on current page
-      const allIds = new Set(paginatedData.map(item => item[resource.primaryKey] ?? item.id))
-      setSelectedIds(allIds)
-    } else {
-      // Deselect all
+  // Bulk selection handlers - select all items on current page
+  const handleSelectAll = () => {
+    // Toggle: if all are selected, deselect all; otherwise select all
+    const currentPageIds = paginatedData.map(item => item[resource.primaryKey] ?? item.id)
+    const allSelected = currentPageIds.length > 0 && currentPageIds.every(id => selectedIds.has(id))
+    
+    if (allSelected) {
       setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(currentPageIds))
     }
   }
 
@@ -358,13 +359,13 @@ export default function ResourceList({ resource, isSpooky = false, customization
                 <TableHead className="w-12 py-4">
                   <Checkbox
                     checked={
-                      paginatedData.length > 0 && selectedIds.size === paginatedData.length
+                      paginatedData.length > 0 && paginatedData.every(item => selectedIds.has(item[resource.primaryKey] ?? item.id))
                         ? true
                         : selectedIds.size > 0
                           ? "indeterminate"
                           : false
                     }
-                    onCheckedChange={handleSelectAll}
+                    onCheckedChange={() => handleSelectAll()}
                     aria-label="Select all"
                   />
                 </TableHead>
