@@ -273,7 +273,7 @@ export default function AnalyzerPage() {
             setCleaning(false);
         }
     };
-    const handleGenerate = () => {
+    const handleGenerate = async () => {
         setGenerating(true);
         // Use REVIEWED resources if available, otherwise use detected resources
         const rawSchema = reviewedResources.length > 0 ? reviewedResources : resources;
@@ -294,10 +294,60 @@ export default function AnalyzerPage() {
         }));
         // Save UI customization settings
         localStorage.setItem("portal-customization", JSON.stringify(uiCustomization));
+        // CRITICAL: Save proxy configuration so the proxy can forward to real API
+        if (detectedBaseUrl) {
+            try {
+                const proxyConfig = {
+                    baseUrl: detectedBaseUrl,
+                    apiType: 'rest',
+                    auth: { mode: 'none' },
+                    resources: schemaToUse.map((resource) => ({
+                        name: resource.name.toLowerCase(),
+                        endpoint: resource.endpoint,
+                        operations: buildProxyOperations(resource),
+                        responsePath: 'Data', // Common wrapper for legacy APIs
+                        fieldMappings: []
+                    }))
+                };
+                await axios.post("http://localhost:8000/api/proxy/config", proxyConfig);
+                console.log("✓ Proxy configuration saved");
+            }
+            catch (err) {
+                console.warn("Could not save proxy config:", err);
+                // Continue anyway - portal will use mock data
+            }
+        }
         // Simulate portal generation with longer delay for the necromancer animation
         setTimeout(() => {
             navigate("/portal");
         }, 4500);
+    };
+    // Helper to build proxy operations from resource schema
+    const buildProxyOperations = (resource) => {
+        const ops = {};
+        const operations = Array.isArray(resource.operations)
+            ? resource.operations
+            : Object.keys(resource.operations || {}).filter(k => resource.operations[k]);
+        operations.forEach((op) => {
+            switch (op) {
+                case 'list':
+                    ops.list = { rest: { method: 'GET', path: resource.endpoint } };
+                    break;
+                case 'detail':
+                    ops.detail = { rest: { method: 'GET', path: `${resource.endpoint}/{${resource.primaryKey}}` } };
+                    break;
+                case 'create':
+                    ops.create = { rest: { method: 'POST', path: resource.endpoint } };
+                    break;
+                case 'update':
+                    ops.update = { rest: { method: 'PUT', path: `${resource.endpoint}/{${resource.primaryKey}}` } };
+                    break;
+                case 'delete':
+                    ops.delete = { rest: { method: 'DELETE', path: `${resource.endpoint}/{${resource.primaryKey}}` } };
+                    break;
+            }
+        });
+        return ops;
     };
     const loadExample = () => {
         const exampleSpec = {

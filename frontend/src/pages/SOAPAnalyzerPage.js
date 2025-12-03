@@ -237,7 +237,7 @@ export default function SOAPAnalyzerPage() {
         };
         reader.readAsText(file);
     };
-    const handleGenerate = () => {
+    const handleGenerate = async () => {
         setGenerating(true);
         // Use REVIEWED resources if available, otherwise use detected resources
         const rawSchema = reviewedResources.length > 0 ? reviewedResources : resources;
@@ -259,10 +259,62 @@ export default function SOAPAnalyzerPage() {
         }));
         // Save UI customization settings
         localStorage.setItem("portal-customization", JSON.stringify(uiCustomization));
+        // CRITICAL: Save proxy configuration so the proxy can forward to real SOAP API
+        if (detectedBaseUrl) {
+            try {
+                const proxyConfig = {
+                    baseUrl: detectedBaseUrl,
+                    apiType: 'soap',
+                    auth: { mode: 'none' },
+                    soapNamespace: 'http://example.com/service', // Default namespace
+                    resources: schemaToUse.map((resource) => ({
+                        name: resource.name.toLowerCase(),
+                        endpoint: resource.endpoint,
+                        operations: buildSoapProxyOperations(resource),
+                        responsePath: 'Data',
+                        fieldMappings: []
+                    }))
+                };
+                await axios.post("http://localhost:8000/api/proxy/config", proxyConfig);
+                console.log("✓ SOAP Proxy configuration saved");
+            }
+            catch (err) {
+                console.warn("Could not save proxy config:", err);
+                // Continue anyway - portal will use mock data
+            }
+        }
         // Navigate directly to portal with necromancer animation
         setTimeout(() => {
             navigate("/portal");
         }, 4500);
+    };
+    // Helper to build SOAP proxy operations from resource schema
+    const buildSoapProxyOperations = (resource) => {
+        const ops = {};
+        const operations = Array.isArray(resource.operations)
+            ? resource.operations
+            : Object.keys(resource.operations || {}).filter(k => resource.operations[k]);
+        const pascalName = resource.name.charAt(0).toUpperCase() + resource.name.slice(1);
+        operations.forEach((op) => {
+            switch (op) {
+                case 'list':
+                    ops.list = { soap: { operationName: `Get${pascalName}`, soapAction: `Get${pascalName}`, responseElement: `Get${pascalName}Response` } };
+                    break;
+                case 'detail':
+                    ops.detail = { soap: { operationName: `Get${pascalName}ById`, soapAction: `Get${pascalName}ById`, responseElement: `Get${pascalName}ByIdResponse` } };
+                    break;
+                case 'create':
+                    ops.create = { soap: { operationName: `Create${pascalName}`, soapAction: `Create${pascalName}`, responseElement: `Create${pascalName}Response` } };
+                    break;
+                case 'update':
+                    ops.update = { soap: { operationName: `Update${pascalName}`, soapAction: `Update${pascalName}`, responseElement: `Update${pascalName}Response` } };
+                    break;
+                case 'delete':
+                    ops.delete = { soap: { operationName: `Delete${pascalName}`, soapAction: `Delete${pascalName}`, responseElement: `Delete${pascalName}Response` } };
+                    break;
+            }
+        });
+        return ops;
     };
     // Load Example WSDL - Customer Service
     const loadWsdlExample = () => {

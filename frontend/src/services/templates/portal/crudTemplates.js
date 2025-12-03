@@ -18,9 +18,10 @@ import type { ResourceSchema } from "@/types"
 
 interface ResourceListProps {
   resource: ResourceSchema
+  isSpooky?: boolean
 }
 
-export default function ResourceList({ resource }: ResourceListProps) {
+export default function ResourceList({ resource, isSpooky = false }: ResourceListProps) {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -45,11 +46,21 @@ export default function ResourceList({ resource }: ResourceListProps) {
     }
   }
 
-  const toggleSelectAll = () => {
-    if (selectedIds.size === filteredData.length && filteredData.length > 0) {
-      setSelectedIds(new Set())
+  const visibleFields = resource.fields.filter((f) => f.name !== resource.primaryKey).slice(0, 5)
+
+  const filteredData = data.filter((item) => {
+    if (!searchTerm) return true
+    return visibleFields.some((field) => {
+      const value = String(item[field.name] || "").toLowerCase()
+      return value.includes(searchTerm.toLowerCase())
+    })
+  })
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(filteredData.map(item => String(item[resource.primaryKey] ?? item.id))))
     } else {
-      setSelectedIds(new Set(filteredData.map(item => String(item[resource.primaryKey]))))
+      setSelectedIds(new Set())
     }
   }
 
@@ -81,34 +92,22 @@ export default function ResourceList({ resource }: ResourceListProps) {
     const itemsToExport = selectedIds.size > 0
       ? data.filter(item => selectedIds.has(String(item[resource.primaryKey])))
       : data
-    
-    const columns = resource.fields.map(f => ({
-      key: f.name,
-      label: f.displayName
-    }))
-    
+    const columns = resource.fields.map(f => ({ key: f.name, label: f.displayName }))
     exportToCSV(itemsToExport, resource.name, columns)
   }
 
-  const visibleFields = resource.fields.filter((f) => f.name !== resource.primaryKey).slice(0, 5)
-
-  const filteredData = data.filter((item) => {
-    if (!searchTerm) return true
-    return visibleFields.some((field) => {
-      const value = String(item[field.name] || "").toLowerCase()
-      return value.includes(searchTerm.toLowerCase())
-    })
-  })
-
   if (loading) {
-    return <div className="flex items-center justify-center h-64">Loading...</div>
+    return <div className={\`flex items-center justify-center h-64 \${isSpooky ? 'text-gray-400' : 'text-gray-600'}\`}>Loading...</div>
   }
+
+  const allSelected = filteredData.length > 0 && selectedIds.size === filteredData.length
+  const someSelected = selectedIds.size > 0 && selectedIds.size < filteredData.length
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">{resource.displayName}</h1>
-        <Button onClick={() => navigate(\`/\${resource.name}/new\`)} className="bg-indigo-600 hover:bg-indigo-700">
+        <h1 className={\`text-2xl font-bold \${isSpooky ? 'text-cyan-400' : 'text-gray-900'}\`}>{resource.displayName}</h1>
+        <Button onClick={() => navigate(\`/\${resource.name}/new\`)} className={\`text-white \${isSpooky ? 'bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700' : 'bg-indigo-600 hover:bg-indigo-700'}\`}>
           <Plus className="w-4 h-4 mr-2" />
           Add {resource.displayName.slice(0, -1)}
         </Button>
@@ -116,50 +115,53 @@ export default function ResourceList({ resource }: ResourceListProps) {
 
       <div className="flex gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+          <Search className={\`absolute left-3 top-3 w-5 h-5 \${isSpooky ? 'text-cyan-400' : 'text-gray-400'}\`} />
           <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={\`Search \${resource.displayName.toLowerCase()}...\`}
-            className="pl-10"
+            className={\`pl-10 \${isSpooky ? 'bg-slate-800 border-cyan-500/30 text-cyan-400 placeholder:text-gray-500' : ''}\`}
           />
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className={\`rounded-lg shadow overflow-hidden \${isSpooky ? 'bg-slate-900 border border-cyan-500/30' : 'bg-white'}\`}>
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className={isSpooky ? 'bg-slate-800 border-cyan-500/20' : 'bg-gray-50'}>
               <TableHead className="w-12">
                 <input
                   type="checkbox"
-                  checked={selectedIds.size === filteredData.length && filteredData.length > 0}
-                  onChange={toggleSelectAll}
-                  className="w-4 h-4 rounded border-gray-300"
+                  checked={allSelected}
+                  ref={(el) => { if (el) el.indeterminate = someSelected }}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className={\`w-4 h-4 rounded \${isSpooky ? 'bg-slate-700 border-cyan-500/50' : 'border-gray-300'}\`}
                 />
               </TableHead>
-              <TableHead>ID</TableHead>
+              <TableHead className={isSpooky ? 'text-cyan-400' : ''}>ID</TableHead>
               {visibleFields.map((field) => (
-                <TableHead key={field.name}>{field.displayName}</TableHead>
+                <TableHead key={field.name} className={isSpooky ? 'text-cyan-400' : ''}>{field.displayName}</TableHead>
               ))}
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className={\`text-right \${isSpooky ? 'text-cyan-400' : ''}\`}>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredData.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={visibleFields.length + 3} className="text-center py-8 text-gray-500">
+              <TableRow key="empty-row">
+                <TableCell colSpan={visibleFields.length + 3} className={\`text-center py-8 \${isSpooky ? 'text-gray-400' : 'text-gray-500'}\`}>
                   No {resource.displayName.toLowerCase()} found
                 </TableCell>
               </TableRow>
             ) : (
-              filteredData.map((item) => {
-                const itemId = String(item[resource.primaryKey])
+              filteredData.map((item, index) => {
+                const itemId = String(item[resource.primaryKey] ?? item.id ?? index)
                 const isSelected = selectedIds.has(itemId)
                 return (
                   <TableRow
-                    key={item[resource.primaryKey]}
-                    className={\`cursor-pointer hover:bg-gray-50 \${isSelected ? 'bg-blue-50' : ''}\`}
+                    key={\`\${resource.name}-\${itemId}-\${index}\`}
+                    className={\`cursor-pointer transition-colors \${isSpooky 
+                      ? \`border-cyan-500/20 hover:bg-cyan-500/10 \${isSelected ? 'bg-cyan-500/20' : ''}\` 
+                      : \`hover:bg-gray-50 \${isSelected ? 'bg-blue-50' : ''}\`}\`}
                     onClick={() => navigate(\`/\${resource.name}/\${item[resource.primaryKey]}\`)}
                   >
                     <TableCell onClick={(e) => e.stopPropagation()}>
@@ -167,27 +169,21 @@ export default function ResourceList({ resource }: ResourceListProps) {
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleSelectItem(itemId)}
-                        className="w-4 h-4 rounded border-gray-300"
+                        className={\`w-4 h-4 rounded \${isSpooky ? 'bg-slate-700 border-cyan-500/50' : 'border-gray-300'}\`}
                       />
                     </TableCell>
-                    <TableCell className="font-mono">#{item[resource.primaryKey]}</TableCell>
+                    <TableCell className={\`font-mono \${isSpooky ? 'text-cyan-400' : 'text-indigo-600'}\`}>#{item[resource.primaryKey]}</TableCell>
                     {visibleFields.map((field) => (
-                      <TableCell key={field.name}>
-                        <FieldRenderer 
-                          value={item[field.name]} 
-                          type={field.type} 
-                          mode="list" 
-                        />
+                      <TableCell key={\`\${itemId}-\${field.name}\`} className={isSpooky ? 'text-gray-300' : ''}>
+                        <FieldRenderer value={item[field.name]} type={field.type} mode="list" />
                       </TableCell>
                     ))}
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          navigate(\`/\${resource.name}/\${item[resource.primaryKey]}\`)
-                        }}
+                        onClick={(e) => { e.stopPropagation(); navigate(\`/\${resource.name}/\${item[resource.primaryKey]}\`) }}
+                        className={isSpooky ? 'text-cyan-400 hover:bg-cyan-500/20' : ''}
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
@@ -205,6 +201,7 @@ export default function ResourceList({ resource }: ResourceListProps) {
         onDelete={() => setShowDeleteConfirm(true)}
         onExport={handleExport}
         onClearSelection={() => setSelectedIds(new Set())}
+        isSpooky={isSpooky}
       />
 
       <ConfirmDialog

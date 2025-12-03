@@ -55,7 +55,33 @@ export default function ResourceList({ resource, isSpooky = false, customization
     setLoading(true)
     try {
       const response = await axios.get(`http://localhost:8000/proxy/${resource.name}`)
-      setData(response.data.data || [])
+      // Handle multiple response formats:
+      // 1. { data: [...] } - standard format
+      // 2. { Data: [...] } - legacy format with capital D
+      // 3. [...] - direct array
+      // 4. { items: [...] } or { results: [...] } - other common formats
+      const responseData = response.data
+      let extractedData: any[] = []
+      
+      if (Array.isArray(responseData)) {
+        extractedData = responseData
+      } else if (responseData?.data && Array.isArray(responseData.data)) {
+        extractedData = responseData.data
+      } else if (responseData?.Data && Array.isArray(responseData.Data)) {
+        extractedData = responseData.Data
+      } else if (responseData?.items && Array.isArray(responseData.items)) {
+        extractedData = responseData.items
+      } else if (responseData?.results && Array.isArray(responseData.results)) {
+        extractedData = responseData.results
+      } else if (typeof responseData === 'object' && responseData !== null) {
+        // If it's an object, check if any property is an array
+        const arrayProp = Object.values(responseData).find(v => Array.isArray(v))
+        if (arrayProp) {
+          extractedData = arrayProp as any[]
+        }
+      }
+      
+      setData(extractedData)
     } catch (error) {
       console.error("Failed to fetch:", error)
       setData(generateMockData())
@@ -168,12 +194,14 @@ export default function ResourceList({ resource, isSpooky = false, customization
   }
 
   // Bulk selection handlers
-  const toggleSelectAll = () => {
-    if (selectedIds.size === paginatedData.length) {
-      setSelectedIds(new Set())
-    } else {
-      const allIds = new Set(paginatedData.map(item => item[resource.primaryKey]))
+  const handleSelectAll = (checked: boolean | "indeterminate") => {
+    if (checked === true) {
+      // Select all items on current page
+      const allIds = new Set(paginatedData.map(item => item[resource.primaryKey] ?? item.id))
       setSelectedIds(allIds)
+    } else {
+      // Deselect all
+      setSelectedIds(new Set())
     }
   }
 
@@ -329,8 +357,14 @@ export default function ResourceList({ resource, isSpooky = false, customization
               {customization.listView?.bulkSelection && (
                 <TableHead className="w-12 py-4">
                   <Checkbox
-                    checked={selectedIds.size === paginatedData.length && paginatedData.length > 0}
-                    onCheckedChange={toggleSelectAll}
+                    checked={
+                      paginatedData.length > 0 && selectedIds.size === paginatedData.length
+                        ? true
+                        : selectedIds.size > 0
+                          ? "indeterminate"
+                          : false
+                    }
+                    onCheckedChange={handleSelectAll}
                     aria-label="Select all"
                   />
                 </TableHead>

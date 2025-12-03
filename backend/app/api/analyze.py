@@ -77,11 +77,11 @@ async def analyze_api(request: AnalyzeRequest):
 
         # === SOAP API Modes ===
         elif mode == "wsdl":
-            resources = await _handle_wsdl_mode(request)
-            metadata["apiType"] = "soap"
+            resources, wsdl_metadata = await _handle_wsdl_mode(request)
+            metadata.update(wsdl_metadata)
         elif mode == "wsdl_url":
-            resources = await _handle_wsdl_url_mode(request)
-            metadata["apiType"] = "soap"
+            resources, wsdl_metadata = await _handle_wsdl_url_mode(request)
+            metadata.update(wsdl_metadata)
         elif mode == "soap_endpoint":
             resources = await _handle_soap_endpoint_mode(request)
             metadata["apiType"] = "soap"
@@ -194,7 +194,7 @@ async def _handle_json_sample_mode(request: AnalyzeRequest) -> list[ResourceSche
 # === SOAP API Mode Handlers ===
 
 
-async def _handle_wsdl_mode(request: AnalyzeRequest) -> list[ResourceSchema]:
+async def _handle_wsdl_mode(request: AnalyzeRequest) -> tuple[list[ResourceSchema], dict]:
     """Handle WSDL spec analysis mode."""
     if not request.wsdlContent:
         raise HTTPException(
@@ -204,7 +204,7 @@ async def _handle_wsdl_mode(request: AnalyzeRequest) -> list[ResourceSchema]:
     return await analyze_wsdl(request.wsdlContent)
 
 
-async def _handle_wsdl_url_mode(request: AnalyzeRequest) -> list[ResourceSchema]:
+async def _handle_wsdl_url_mode(request: AnalyzeRequest) -> tuple[list[ResourceSchema], dict]:
     """Handle WSDL URL analysis mode."""
     if not request.wsdlUrl:
         raise HTTPException(

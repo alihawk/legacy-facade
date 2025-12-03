@@ -47,14 +47,14 @@ XSD_TYPE_MAP = {
 }
 
 
-async def analyze_wsdl(wsdl_content: str) -> list[ResourceSchema]:
+async def analyze_wsdl(wsdl_content: str) -> tuple[list[ResourceSchema], dict]:
     """Analyze a WSDL document and extract resource schemas.
 
     Args:
         wsdl_content: WSDL XML content as string
 
     Returns:
-        List of ResourceSchema objects
+        Tuple of (List of ResourceSchema objects, metadata dict with baseUrl)
 
     Raises:
         ValueError: If WSDL is invalid or cannot be parsed
@@ -73,25 +73,30 @@ async def analyze_wsdl(wsdl_content: str) -> list[ResourceSchema]:
     # Extract operations from port types
     operations = _extract_operations(root)
 
-    # Extract service endpoint
-    endpoint = _extract_endpoint(root)
+    # Extract service endpoint and base URL
+    endpoint, base_url = _extract_endpoint_and_base_url(root)
 
     # Build resources from complex types and operations
     resources = _build_resources(
         complex_types, operations, endpoint, service_name
     )
 
-    return resources
+    # Build metadata
+    metadata = {"apiType": "soap"}
+    if base_url:
+        metadata["baseUrl"] = base_url
+
+    return resources, metadata
 
 
-async def analyze_wsdl_url(wsdl_url: str) -> list[ResourceSchema]:
+async def analyze_wsdl_url(wsdl_url: str) -> tuple[list[ResourceSchema], dict]:
     """Fetch and analyze a WSDL from URL.
 
     Args:
         wsdl_url: URL to WSDL document (often ending in ?wsdl)
 
     Returns:
-        List of ResourceSchema objects
+        Tuple of (List of ResourceSchema objects, metadata dict with baseUrl)
 
     Raises:
         ValueError: If URL is unreachable or returns invalid WSDL
@@ -221,7 +226,17 @@ def _infer_operation_type(operation_name: str) -> str:
 
 
 def _extract_endpoint(root: ET.Element) -> str:
-    """Extract service endpoint URL from WSDL."""
+    """Extract service endpoint path from WSDL (legacy function for compatibility)."""
+    endpoint, _ = _extract_endpoint_and_base_url(root)
+    return endpoint
+
+
+def _extract_endpoint_and_base_url(root: ET.Element) -> tuple[str, str | None]:
+    """Extract service endpoint path and base URL from WSDL.
+    
+    Returns:
+        Tuple of (endpoint_path, base_url)
+    """
     for elem in root.iter():
         if elem.tag.endswith("address"):
             location = elem.attrib.get("location", "")
@@ -229,10 +244,13 @@ def _extract_endpoint(root: ET.Element) -> str:
                 if "://" in location:
                     from urllib.parse import urlparse
                     parsed = urlparse(location)
-                    return parsed.path or "/service"
-                return location
+                    # Build base URL (scheme + netloc)
+                    base_url = f"{parsed.scheme}://{parsed.netloc}"
+                    endpoint = parsed.path or "/service"
+                    return endpoint, base_url
+                return location, None
 
-    return "/service"
+    return "/service", None
 
 
 def _build_resources(
