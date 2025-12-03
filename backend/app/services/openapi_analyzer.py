@@ -81,7 +81,7 @@ def _parse_openapi_cached(spec_hash: str, spec_yaml: str) -> Any:
         Path(temp_path).unlink(missing_ok=True)
 
 
-async def analyze_openapi_spec(spec_data: dict | str) -> list[ResourceSchema]:
+async def analyze_openapi_spec(spec_data: dict | str) -> tuple[list[ResourceSchema], dict]:
     """Analyze OpenAPI specification and extract resource schemas.
 
     Optimizations:
@@ -92,7 +92,7 @@ async def analyze_openapi_spec(spec_data: dict | str) -> list[ResourceSchema]:
         spec_data: OpenAPI spec as dict (JSON) or string (YAML)
 
     Returns:
-        List of ResourceSchema objects
+        Tuple of (List of ResourceSchema objects, metadata dict with baseUrl)
 
     Raises:
         ValueError: If spec is invalid or cannot be parsed
@@ -100,8 +100,14 @@ async def analyze_openapi_spec(spec_data: dict | str) -> list[ResourceSchema]:
     # Convert to YAML string for parsing
     if isinstance(spec_data, str):
         spec_yaml = spec_data
+        # Also parse to dict to extract servers
+        try:
+            spec_dict = yaml.safe_load(spec_data)
+        except Exception:
+            spec_dict = {}
     else:
         spec_yaml = yaml.dump(spec_data)
+        spec_dict = spec_data
 
     # Compute hash for caching
     spec_hash = _compute_spec_hash(spec_data)
@@ -121,17 +127,51 @@ async def analyze_openapi_spec(spec_data: dict | str) -> list[ResourceSchema]:
     if not resources:
         raise ValueError("No resources found in specification")
 
-    return resources
+    # Extract metadata (baseUrl from servers field)
+    metadata = _extract_metadata_from_spec(spec_dict)
+
+    return resources, metadata
 
 
-async def analyze_openapi_url(spec_url: str) -> list[ResourceSchema]:
+def _extract_metadata_from_spec(spec_dict: dict) -> dict:
+    """Extract metadata from OpenAPI spec including baseUrl.
+
+    Args:
+        spec_dict: OpenAPI spec as dictionary
+
+    Returns:
+        Dictionary with metadata (baseUrl, etc.)
+    """
+    metadata = {}
+
+    # Extract baseUrl from servers field (OpenAPI 3.x)
+    servers = spec_dict.get("servers", [])
+    if servers and isinstance(servers, list) and len(servers) > 0:
+        first_server = servers[0]
+        if isinstance(first_server, dict) and "url" in first_server:
+            metadata["baseUrl"] = first_server["url"]
+
+    # Fallback: Extract from host/basePath (Swagger 2.x)
+    if "baseUrl" not in metadata:
+        host = spec_dict.get("host", "")
+        base_path = spec_dict.get("basePath", "")
+        schemes = spec_dict.get("schemes", ["https"])
+        scheme = schemes[0] if schemes else "https"
+
+        if host:
+            metadata["baseUrl"] = f"{scheme}://{host}{base_path}"
+
+    return metadata
+
+
+async def analyze_openapi_url(spec_url: str) -> tuple[list[ResourceSchema], dict]:
     """Fetch and analyze OpenAPI specification from URL.
 
     Args:
         spec_url: URL to OpenAPI specification
 
     Returns:
-        List of ResourceSchema objects
+        Tuple of (List of ResourceSchema objects, metadata dict with baseUrl)
 
     Raises:
         ValueError: If spec cannot be fetched or parsed

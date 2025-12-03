@@ -55,7 +55,7 @@ export function ConfirmDialog({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="rounded-xl"
+            className="rounded-xl border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
           >
             {cancelLabel}
           </Button>

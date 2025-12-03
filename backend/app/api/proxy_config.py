@@ -105,11 +105,11 @@ async def get_proxy_config() -> dict:
     Returns the current proxy configuration with sensitive data
     (tokens, passwords) sanitized for security.
     
+    If no configuration exists, returns a default configuration
+    pointing to the mock data endpoints.
+    
     Returns:
         Sanitized proxy configuration
-        
-    Raises:
-        HTTPException: If no configuration exists (404)
         
     Example:
         GET /api/proxy/config
@@ -132,10 +132,22 @@ async def get_proxy_config() -> dict:
     config = proxy_config_manager.get_config()
     
     if config is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Proxy not configured. Please configure the proxy first."
-        )
+        # Return default mock configuration instead of 404
+        return {
+            "baseUrl": "http://localhost:8000",
+            "apiType": "rest",
+            "auth": {
+                "mode": "none",
+                "hasBearer": False,
+                "hasApiKey": False,
+                "hasBasicAuth": False,
+                "hasWsse": False,
+            },
+            "resources": [],
+            "soapNamespace": None,
+            "configured": False,
+            "usingMockData": True
+        }
     
     # Sanitize authentication config (hide sensitive data)
     sanitized_auth = {

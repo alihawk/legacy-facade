@@ -1,0 +1,27 @@
+{
+  "name": "verify-proxy-flow",
+  "description": "Verify the complete proxy data flow from analysis to download",
+  "enabled": true,
+  "triggers": [
+    {
+      "type": "manual",
+      "label": "🔄 Verify Proxy Flow"
+    }
+  ],
+  "actions": [
+    {
+      "type": "command",
+      "cwd": "backend",
+      "command": "python",
+      "args": ["-m", "py_compile", "app/api/analyze.py", "app/services/openapi_analyzer.py", "app/services/schema_normalizer.py"],
+      "description": "Verify backend analyzer compiles"
+    },
+    {
+      "type": "command",
+      "cwd": "frontend",
+      "command": "npx",
+      "args": ["tsc", "--noEmit", "-p", "tsconfig.app.json"],
+      "description": "Verify frontend TypeScript compiles"
+    }
+  ]
+}

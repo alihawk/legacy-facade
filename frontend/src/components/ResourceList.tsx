@@ -32,6 +32,7 @@ export default function ResourceList({ resource, isSpooky = false, customization
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [selectedIds, setSelectedIds] = useState<Set<any>>(new Set())
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showSuccessMessage, setShowSuccessMessage] = useState<string | null>(null)
   const navigate = useNavigate()
 
   // Use prop customization or read from localStorage
@@ -197,7 +198,9 @@ export default function ResourceList({ resource, isSpooky = false, customization
   }
 
   const confirmBulkDelete = async () => {
-    // In a real app, this would call the API
+    const deleteCount = selectedIds.size
+    
+    // In a real app, this would call the API for each item
     console.log('Deleting items:', Array.from(selectedIds))
     
     // Simulate deletion
@@ -205,8 +208,11 @@ export default function ResourceList({ resource, isSpooky = false, customization
     setData(newData)
     setSelectedIds(new Set())
     
-    // Show success message (you could add a toast here)
-    alert(`Successfully deleted ${selectedIds.size} items`)
+    // Show success message
+    setShowSuccessMessage(`Successfully deleted ${deleteCount} item${deleteCount !== 1 ? 's' : ''}`)
+    
+    // Auto-hide after 3 seconds
+    setTimeout(() => setShowSuccessMessage(null), 3000)
   }
 
   if (loading) {
@@ -268,6 +274,24 @@ export default function ResourceList({ resource, isSpooky = false, customization
             onDelete={customization.listView?.bulkDelete && resource.operations?.delete !== false ? handleBulkDelete : undefined}
             isSpooky={isSpooky}
           />
+        )}
+
+        {/* Success Message Toast */}
+        {showSuccessMessage && (
+          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border animate-emerge ${isSpooky ? 'bg-emerald-900/30 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span className="font-medium">{showSuccessMessage}</span>
+            <button 
+              onClick={() => setShowSuccessMessage(null)}
+              className={`ml-auto p-1 rounded-lg transition-colors ${isSpooky ? 'hover:bg-emerald-500/20' : 'hover:bg-emerald-100'}`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         )}
       </div>
 
@@ -366,12 +390,12 @@ export default function ResourceList({ resource, isSpooky = false, customization
               </TableRow>
             ) : (
               paginatedData.map((item, index) => {
-                const itemId = item[resource.primaryKey]
+                const itemId = item[resource.primaryKey] ?? item.id ?? index
                 const isSelected = selectedIds.has(itemId)
                 
                 return (
                   <TableRow
-                    key={itemId}
+                    key={`${resource.name}-${itemId}-${index}`}
                     className={`cursor-pointer transition-all duration-200 ${
                       isSpooky 
                         ? `border-cyan-500/20 hover:bg-cyan-500/10 ${isSelected ? 'bg-cyan-500/20' : ''}`

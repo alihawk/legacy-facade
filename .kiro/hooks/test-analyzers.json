@@ -1,0 +1,27 @@
+{
+  "name": "test-analyzers",
+  "description": "Run backend analyzer tests to verify API introspection works",
+  "enabled": true,
+  "triggers": [
+    {
+      "type": "manual",
+      "label": "🧪 Test Analyzers"
+    },
+    {
+      "type": "onFileSave",
+      "patterns": [
+        "backend/app/services/*_analyzer.py",
+        "backend/tests/test_*.py"
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "type": "command",
+      "cwd": "backend",
+      "command": "python",
+      "args": ["-m", "pytest", "tests/", "-v", "--tb=short"],
+      "description": "Run pytest on backend analyzer tests"
+    }
+  ]
+}

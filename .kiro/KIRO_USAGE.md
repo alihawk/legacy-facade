@@ -376,6 +376,65 @@ Kiro: [Executed hook, reported results]
 **Total Hooks:** 2 active
 **Automation Savings:** ~2 hours/week
 
+### Recent Updates (December 2025)
+
+#### Session 11: Vercel Deployment Fixes
+```
+Me: "Fix Vercel deployment - Dashboard not exporting default"
+Kiro: [Fixed dashboardTemplate.ts export, updated import paths]
+Me: "Add proper dark theme support to deployed version"
+Kiro: [Updated vercel_frontend_generator.py with full theme support]
+```
+
+**Fixed:** Vercel deployment now works with proper styling and dark theme
+
+#### Session 12: Download Modal Enhancement
+```
+Me: "Replace browser alert with beautiful modal for download success"
+Kiro: [Created download success modal matching Vercel deploy modal style]
+```
+
+**Added:** Professional download success modal with next steps
+
+#### Session 13: Mock Data & SOAP Support
+```
+Me: "Fix invisible data fields for SOAP examples"
+Kiro: [Added mock data mappings for getallusers, getcustomers, getorders, getaccounts]
+```
+
+**Fixed:** SOAP examples now show proper mock data
+
+#### Session 14: Code Cleanup
+```
+Me: "Remove duplicate .js files, keep only .ts"
+Kiro: [Deleted 9 duplicate .js files from templates/proxy/]
+```
+
+**Cleaned:** Removed redundant JavaScript files
+
+#### Session 15: Real API Flow - BaseUrl Extraction
+```
+Me: "Ensure proxy works with real legacy APIs, not just examples"
+Kiro: [Implemented complete baseUrl extraction flow]
+```
+
+**Changes Made:**
+1. `openapi_analyzer.py` - Now extracts `baseUrl` from OpenAPI `servers` field
+2. `schema_normalizer.py` - Returns metadata including `baseUrl` in response
+3. `analyze.py` - Passes metadata through for all analysis modes
+4. `AnalyzerPage.tsx` - Captures `baseUrl` from response, stores in localStorage
+5. `SOAPAnalyzerPage.tsx` - Same baseUrl capture for SOAP APIs
+6. `PortalPage.tsx` - Reads `baseUrl` from schema when downloading
+7. `configGenerator.ts` - Uses extracted `baseUrl` instead of placeholder
+
+**Complete Flow:**
+```
+OpenAPI Spec → Backend extracts servers[0].url → Frontend stores baseUrl
+→ Download generates config.json with REAL baseUrl → Proxy connects to real API
+```
+
+**Impact:** Downloaded projects now work out-of-the-box with real legacy APIs
+
 ---
 
 ## 4. 🔌 MCP (Model Context Protocol)

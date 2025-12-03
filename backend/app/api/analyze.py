@@ -57,26 +57,41 @@ async def analyze_api(request: AnalyzeRequest):
     """
     try:
         mode = request.mode
+        metadata: dict = {}
 
         # === REST API Modes ===
         if mode == "openapi":
-            resources = await _handle_openapi_mode(request)
+            resources, metadata = await _handle_openapi_mode(request)
         elif mode == "openapi_url":
-            resources = await _handle_openapi_url_mode(request)
+            resources, metadata = await _handle_openapi_url_mode(request)
         elif mode == "endpoint":
             resources = await _handle_endpoint_mode(request)
+            # For endpoint mode, use the provided baseUrl
+            if request.baseUrl:
+                metadata["baseUrl"] = request.baseUrl
         elif mode == "json_sample":
             resources = await _handle_json_sample_mode(request)
+            # For json_sample mode, use the provided baseUrl
+            if request.baseUrl:
+                metadata["baseUrl"] = request.baseUrl
 
         # === SOAP API Modes ===
         elif mode == "wsdl":
             resources = await _handle_wsdl_mode(request)
+            metadata["apiType"] = "soap"
         elif mode == "wsdl_url":
             resources = await _handle_wsdl_url_mode(request)
+            metadata["apiType"] = "soap"
         elif mode == "soap_endpoint":
             resources = await _handle_soap_endpoint_mode(request)
+            metadata["apiType"] = "soap"
+            if request.baseUrl:
+                metadata["baseUrl"] = request.baseUrl
         elif mode == "soap_xml_sample":
             resources = await _handle_soap_xml_sample_mode(request)
+            metadata["apiType"] = "soap"
+            if request.baseUrl:
+                metadata["baseUrl"] = request.baseUrl
 
         else:
             raise HTTPException(
@@ -86,8 +101,8 @@ async def analyze_api(request: AnalyzeRequest):
                 f"wsdl, wsdl_url, soap_endpoint, soap_xml_sample",
             )
 
-        # Normalize and validate the resources
-        return normalize_resources(resources)
+        # Normalize and validate the resources, include metadata
+        return normalize_resources(resources, metadata)
 
     except HTTPException:
         raise
@@ -103,7 +118,7 @@ async def analyze_api(request: AnalyzeRequest):
 # === REST API Mode Handlers ===
 
 
-async def _handle_openapi_mode(request: AnalyzeRequest) -> list[ResourceSchema]:
+async def _handle_openapi_mode(request: AnalyzeRequest) -> tuple[list[ResourceSchema], dict]:
     """Handle OpenAPI spec analysis mode."""
     if not request.specJson:
         raise HTTPException(
@@ -120,7 +135,7 @@ async def _handle_openapi_mode(request: AnalyzeRequest) -> list[ResourceSchema]:
     return await analyze_openapi_spec(spec)
 
 
-async def _handle_openapi_url_mode(request: AnalyzeRequest) -> list[ResourceSchema]:
+async def _handle_openapi_url_mode(request: AnalyzeRequest) -> tuple[list[ResourceSchema], dict]:
     """Handle OpenAPI URL analysis mode."""
     if not request.specUrl:
         raise HTTPException(

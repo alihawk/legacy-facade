@@ -3,6 +3,8 @@
 Provides REST API endpoints that forward requests to legacy APIs
 through the smart proxy layer, handling authentication, field mapping,
 and protocol translation (REST/SOAP).
+
+Falls back to mock data when proxy is not configured.
 """
 
 from fastapi import APIRouter, Request
@@ -10,9 +12,51 @@ from fastapi.responses import JSONResponse
 from typing import Any
 
 from ..services.proxy_forwarder import forward_request
+from ..services.proxy_config_manager import proxy_config_manager
+from .mock_data import (
+    MOCK_USERS, MOCK_ACTIVITY, MOCK_PRODUCTS,
+    MOCK_CUSTOMERS, MOCK_ORDERS, MOCK_ACCOUNTS, MOCK_TRANSACTIONS
+)
 
 
 router = APIRouter()
+
+
+# Mock data mapping for fallback
+MOCK_DATA_MAP = {
+    "users": MOCK_USERS,
+    "getallusers": MOCK_USERS,  # SOAP HR example
+    "activity": MOCK_ACTIVITY,
+    "products": MOCK_PRODUCTS,
+    "customers": MOCK_CUSTOMERS,
+    "getcustomers": MOCK_CUSTOMERS,  # SOAP Customer example
+    "orders": MOCK_ORDERS,
+    "getorders": MOCK_ORDERS,  # SOAP Order example
+    "accounts": MOCK_ACCOUNTS,
+    "getaccounts": MOCK_ACCOUNTS,  # SOAP Banking example
+    "transactions": MOCK_TRANSACTIONS,
+    "gettransactions": MOCK_TRANSACTIONS,  # SOAP Banking example
+    "sample": MOCK_USERS,  # Default fallback for analyzed samples
+}
+
+
+def _get_primary_key(resource: str) -> str:
+    """Get the primary key field name for a resource."""
+    pk_map = {
+        "users": "user_id",
+        "getallusers": "user_id",
+        "activity": "activity_id",
+        "products": "product_id",
+        "customers": "customer_id",
+        "getcustomers": "customer_id",
+        "orders": "order_id",
+        "getorders": "order_id",
+        "accounts": "account_id",
+        "getaccounts": "account_id",
+        "transactions": "transaction_id",
+        "gettransactions": "transaction_id",
+    }
+    return pk_map.get(resource.lower(), "id")
 
 
 def _build_cors_headers() -> dict[str, str]:
@@ -28,6 +72,18 @@ def _build_cors_headers() -> dict[str, str]:
     }
 
 
+def _get_mock_data(resource: str) -> list:
+    """Get mock data for a resource, with fallback to generic data."""
+    if resource.lower() in MOCK_DATA_MAP:
+        return MOCK_DATA_MAP[resource.lower()]
+    
+    # Generate generic mock data for unknown resources
+    return [
+        {"id": i, "name": f"{resource.title()} Record {i}", "status": "active", "created_at": "2024-01-15"}
+        for i in range(1, 11)
+    ]
+
+
 @router.get("/proxy/{resource}")
 async def proxy_list(resource: str, request: Request) -> JSONResponse:
     """List all records for a resource.
@@ -35,22 +91,25 @@ async def proxy_list(resource: str, request: Request) -> JSONResponse:
     Forwards a list request to the legacy API, applying authentication,
     field mapping, and response normalization.
     
+    Falls back to mock data if proxy is not configured.
+    
     Args:
         resource: Resource name (e.g., "users", "orders")
         request: FastAPI request object (for query parameters)
         
     Returns:
         JSONResponse with list of records or error
-        
-    Example:
-        GET /proxy/customers?status=active
-        
-        Response:
-        [
-            {"id": 1, "name": "John", "status": "active"},
-            {"id": 2, "name": "Jane", "status": "active"}
-        ]
     """
+    # Check if proxy is configured
+    if not proxy_config_manager.is_configured():
+        # Return mock data as fallback
+        mock_data = _get_mock_data(resource)
+        return JSONResponse(
+            content={"data": mock_data},
+            status_code=200,
+            headers=_build_cors_headers()
+        )
+    
     # Extract query parameters
     query_params = dict(request.query_params)
     
@@ -74,6 +133,7 @@ async def proxy_detail(resource: str, id: str) -> JSONResponse:
     """Get a single record by ID.
     
     Forwards a detail request to the legacy API.
+    Falls back to mock data if proxy is not configured.
     
     Args:
         resource: Resource name
@@ -81,17 +141,34 @@ async def proxy_detail(resource: str, id: str) -> JSONResponse:
         
     Returns:
         JSONResponse with single record or error
-        
-    Example:
-        GET /proxy/customers/123
-        
-        Response:
-        {
-            "id": 123,
-            "name": "John Doe",
-            "email": "john@example.com"
-        }
     """
+    # Check if proxy is configured
+    if not proxy_config_manager.is_configured():
+        # Return mock data as fallback
+        mock_data = _get_mock_data(resource)
+        pk_field = _get_primary_key(resource)
+        
+        # Try to find the record by ID
+        try:
+            id_val = int(id) if id.isdigit() else id
+        except (ValueError, AttributeError):
+            id_val = id
+            
+        record = next((item for item in mock_data if item.get(pk_field) == id_val or item.get("id") == id_val), None)
+        
+        if record:
+            return JSONResponse(
+                content={"data": record},
+                status_code=200,
+                headers=_build_cors_headers()
+            )
+        else:
+            return JSONResponse(
+                content={"error": f"{resource} with id {id} not found"},
+                status_code=404,
+                headers=_build_cors_headers()
+            )
+    
     # Forward request to legacy API
     status_code, data = await forward_request(
         resource=resource,
@@ -112,6 +189,7 @@ async def proxy_create(resource: str, request: Request) -> JSONResponse:
     """Create a new record.
     
     Forwards a create request to the legacy API with the provided data.
+    Falls back to mock response if proxy is not configured.
     
     Args:
         resource: Resource name
@@ -119,26 +197,25 @@ async def proxy_create(resource: str, request: Request) -> JSONResponse:
         
     Returns:
         JSONResponse with created record or error
-        
-    Example:
-        POST /proxy/customers
-        {
-            "name": "John Doe",
-            "email": "john@example.com"
-        }
-        
-        Response:
-        {
-            "id": 123,
-            "name": "John Doe",
-            "email": "john@example.com"
-        }
     """
     # Extract JSON body
     try:
         body = await request.json()
     except Exception:
-        body = None
+        body = {}
+    
+    # Check if proxy is configured
+    if not proxy_config_manager.is_configured():
+        # Return mock created response
+        pk_field = _get_primary_key(resource)
+        import random
+        new_id = random.randint(10000, 99999)
+        created_record = {pk_field: new_id, **body}
+        return JSONResponse(
+            content={"data": created_record, "message": "Record created (mock)"},
+            status_code=201,
+            headers=_build_cors_headers()
+        )
     
     # Forward request to legacy API
     status_code, data = await forward_request(
@@ -160,6 +237,7 @@ async def proxy_update(resource: str, id: str, request: Request) -> JSONResponse
     """Update an existing record.
     
     Forwards an update request to the legacy API with the provided data.
+    Falls back to mock response if proxy is not configured.
     
     Args:
         resource: Resource name
@@ -168,26 +246,27 @@ async def proxy_update(resource: str, id: str, request: Request) -> JSONResponse
         
     Returns:
         JSONResponse with updated record or error
-        
-    Example:
-        PUT /proxy/customers/123
-        {
-            "name": "John Smith",
-            "email": "john.smith@example.com"
-        }
-        
-        Response:
-        {
-            "id": 123,
-            "name": "John Smith",
-            "email": "john.smith@example.com"
-        }
     """
     # Extract JSON body
     try:
         body = await request.json()
     except Exception:
-        body = None
+        body = {}
+    
+    # Check if proxy is configured
+    if not proxy_config_manager.is_configured():
+        # Return mock updated response
+        pk_field = _get_primary_key(resource)
+        try:
+            id_val = int(id) if id.isdigit() else id
+        except (ValueError, AttributeError):
+            id_val = id
+        updated_record = {pk_field: id_val, **body}
+        return JSONResponse(
+            content={"data": updated_record, "message": "Record updated (mock)"},
+            status_code=200,
+            headers=_build_cors_headers()
+        )
     
     # Forward request to legacy API
     status_code, data = await forward_request(
@@ -210,6 +289,7 @@ async def proxy_delete(resource: str, id: str) -> JSONResponse:
     """Delete a record.
     
     Forwards a delete request to the legacy API.
+    Falls back to mock response if proxy is not configured.
     
     Args:
         resource: Resource name
@@ -217,16 +297,16 @@ async def proxy_delete(resource: str, id: str) -> JSONResponse:
         
     Returns:
         JSONResponse with success message or error
-        
-    Example:
-        DELETE /proxy/customers/123
-        
-        Response:
-        {
-            "status": "ok",
-            "message": "Record deleted successfully"
-        }
     """
+    # Check if proxy is configured
+    if not proxy_config_manager.is_configured():
+        # Return mock delete response
+        return JSONResponse(
+            content={"status": "ok", "message": f"Record {id} deleted (mock)"},
+            status_code=200,
+            headers=_build_cors_headers()
+        )
+    
     # Forward request to legacy API
     status_code, data = await forward_request(
         resource=resource,

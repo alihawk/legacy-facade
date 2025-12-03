@@ -4,15 +4,36 @@
  * Generates config.json content from ProxyConfig and ResourceSchema[]
  */
 /**
+ * Normalize operations to array format
+ * Handles both array format ["list", "detail"] and object format {list: true, detail: true}
+ */
+function normalizeOperations(operations) {
+    if (!operations) {
+        return ['list', 'detail'];
+    }
+    // If it's already an array, return it
+    if (Array.isArray(operations)) {
+        return operations;
+    }
+    // If it's an object, extract keys where value is true
+    if (typeof operations === 'object') {
+        return Object.entries(operations)
+            .filter(([_, enabled]) => enabled)
+            .map(([op]) => op);
+    }
+    return ['list', 'detail'];
+}
+/**
  * Generate proxy configuration JSON from ProxyConfig and ResourceSchema[]
  *
  * @param proxyConfig - Proxy configuration from backend (can be null)
  * @param schemas - Resource schemas from API analysis
+ * @param fallbackBaseUrl - Fallback baseUrl if not in proxyConfig (e.g., from OpenAPI spec)
  * @returns JSON string for config.json
  */
-export function generateProxyConfig(proxyConfig, schemas) {
-    // Use defaults if proxyConfig is null
-    const baseUrl = proxyConfig?.baseUrl || '{{YOUR_API_BASE_URL}}';
+export function generateProxyConfig(proxyConfig, schemas, fallbackBaseUrl) {
+    // Use proxyConfig baseUrl, then fallback, then placeholder
+    const baseUrl = proxyConfig?.baseUrl || fallbackBaseUrl || '{{YOUR_API_BASE_URL}}';
     const apiType = proxyConfig?.apiType || 'rest';
     const soapNamespace = proxyConfig?.soapNamespace;
     // Sanitize auth config (replace secrets with placeholders)
@@ -23,7 +44,9 @@ export function generateProxyConfig(proxyConfig, schemas) {
         const resourceConfig = proxyConfig?.resources.find(r => r.name === schema.name);
         // Build operations config
         const operations = {};
-        for (const op of schema.operations) {
+        // Normalize operations to array format (handles both array and object formats)
+        const opsArray = normalizeOperations(schema.operations);
+        for (const op of opsArray) {
             if (apiType === 'rest') {
                 operations[op] = buildRestOperation(op, schema.endpoint, schema.primaryKey);
             }

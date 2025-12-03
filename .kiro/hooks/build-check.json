@@ -1,11 +1,11 @@
 {
   "name": "build-check",
-  "description": "Verify frontend builds without errors",
-  "enabled": false,
+  "description": "Verify frontend and backend compile without errors",
+  "enabled": true,
   "triggers": [
     {
       "type": "manual",
-      "label": "🏗️ Build Frontend"
+      "label": "🏗️ Build Check"
     }
   ],
   "actions": [
@@ -13,7 +13,15 @@
       "type": "command",
       "cwd": "frontend",
       "command": "npm",
-      "args": ["run", "build"]
+      "args": ["run", "build"],
+      "description": "TypeScript compile + Vite build for frontend"
+    },
+    {
+      "type": "command",
+      "cwd": "backend",
+      "command": "python",
+      "args": ["-m", "py_compile", "app/main.py"],
+      "description": "Verify backend Python syntax"
     }
   ]
 }

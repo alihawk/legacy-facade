@@ -15,7 +15,10 @@ logger = logging.getLogger(__name__)
 VALID_OPERATIONS = {"list", "detail", "create", "update", "delete"}
 
 
-def normalize_resources(resources: list[ResourceSchema]) -> dict[str, list[dict[str, Any]]]:
+def normalize_resources(
+    resources: list[ResourceSchema],
+    metadata: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Normalize and validate resource schemas.
 
     Ensures all resources have required fields and valid values.
@@ -23,9 +26,10 @@ def normalize_resources(resources: list[ResourceSchema]) -> dict[str, list[dict[
 
     Args:
         resources: List of ResourceSchema objects
+        metadata: Optional metadata dict (baseUrl, apiType, etc.)
 
     Returns:
-        Dictionary with "resources" key containing list of resource dicts
+        Dictionary with "resources" key and optional metadata fields
 
     Raises:
         ValueError: If resources are invalid
@@ -40,7 +44,16 @@ def normalize_resources(resources: list[ResourceSchema]) -> dict[str, list[dict[
     # Convert to dict format for API response
     resources_dict = [_resource_to_dict(resource) for resource in resources]
 
-    return {"resources": resources_dict}
+    result: dict[str, Any] = {"resources": resources_dict}
+
+    # Include metadata if provided
+    if metadata:
+        if "baseUrl" in metadata:
+            result["baseUrl"] = metadata["baseUrl"]
+        if "apiType" in metadata:
+            result["apiType"] = metadata["apiType"]
+
+    return result
 
 
 def _validate_resource(resource: ResourceSchema) -> None:

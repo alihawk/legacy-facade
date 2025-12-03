@@ -2,7 +2,7 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { useState, useEffect } from "react";
 import { Routes, Route, useNavigate, useParams } from "react-router-dom";
-import { Download, Loader2 } from "lucide-react";
+import { Download, Loader2, CheckCircle2, AlertCircle, FolderDown } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import Dashboard from "@/components/Dashboard";
 import ResourceList from "@/components/ResourceList";
@@ -11,6 +11,7 @@ import ResourceForm from "@/components/ResourceForm";
 import ResourceActivity from "@/components/ResourceActivity";
 import ResourceSettings from "@/components/ResourceSettings";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { projectGenerator } from "@/services/ProjectGenerator";
 import { DeployToVercelButton } from "@/components/DeployToVercelButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -21,6 +22,7 @@ export default function PortalPage() {
     const [proxyConfig, setProxyConfig] = useState(null);
     const [customization, setCustomization] = useState(null);
     const [currentTheme, setCurrentTheme] = useState('light');
+    const [downloadModal, setDownloadModal] = useState({ open: false, status: 'success', message: '', hasProxyConfig: false });
     const navigate = useNavigate();
     useEffect(() => {
         const stored = localStorage.getItem("app-schema");
@@ -81,8 +83,8 @@ export default function PortalPage() {
                 alert("No resources found in schema.");
                 return;
             }
-            // Get baseUrl from localStorage or use default
-            const baseUrl = localStorage.getItem("api-base-url") || "http://localhost:8000";
+            // Get baseUrl from schema (extracted from OpenAPI spec) or use default
+            const baseUrl = parsed.baseUrl || localStorage.getItem("api-base-url") || "http://localhost:8000";
             // Fetch proxy configuration from backend
             let proxyConfig = null;
             try {
@@ -125,19 +127,24 @@ export default function PortalPage() {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            // Show success message
-            if (proxyConfig) {
-                alert("✅ Project downloaded successfully with proxy configuration!");
-            }
-            else {
-                alert("✅ Project downloaded successfully!\n\n" +
-                    "⚠️ Note: Using default proxy configuration.\n" +
-                    "Please update proxy-server/config.json with your API details.");
-            }
+            // Show success modal
+            setDownloadModal({
+                open: true,
+                status: 'success',
+                message: proxyConfig
+                    ? 'Your project has been downloaded with proxy configuration included.'
+                    : 'Your project has been downloaded. Please update proxy-server/config.json with your API details.',
+                hasProxyConfig: !!proxyConfig
+            });
         }
         catch (error) {
             console.error("Failed to generate project:", error);
-            alert(`❌ Failed to generate project: ${error instanceof Error ? error.message : "Unknown error"}`);
+            setDownloadModal({
+                open: true,
+                status: 'error',
+                message: error instanceof Error ? error.message : 'Unknown error occurred',
+                hasProxyConfig: false
+            });
         }
         finally {
             setIsDownloading(false);
@@ -159,7 +166,9 @@ export default function PortalPage() {
     };
     // Determine if spooky theme is enabled
     const isSpookyTheme = currentTheme === 'dark';
-    return (_jsxs("div", { className: `min-h-screen ${isSpookyTheme ? 'bg-slate-950' : 'bg-gray-50'}`, children: [_jsx(Sidebar, { resources: resources, open: sidebarOpen, onToggle: () => setSidebarOpen(!sidebarOpen), isSpooky: isSpookyTheme }), _jsxs("main", { className: `transition-all duration-300 ${sidebarOpen ? "ml-64" : "ml-16"}`, children: [_jsx("div", { className: `${isSpookyTheme ? 'bg-slate-900 border-cyan-500/30' : 'bg-white border-gray-200'} border-b px-8 py-4 sticky top-0 z-30 shadow-sm`, children: _jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsxs("h1", { className: `text-xl font-semibold ${isSpookyTheme ? 'text-cyan-400' : 'text-gray-900'}`, children: ["Admin Portal", isSpookyTheme ? ' 💀' : ''] }), _jsxs("p", { className: `text-sm ${isSpookyTheme ? 'text-gray-400' : 'text-gray-500'}`, children: [resources.length, " resources loaded"] })] }), _jsxs("div", { className: "flex items-center gap-3", children: [_jsx(ThemeToggle, { currentTheme: currentTheme, onThemeChange: handleThemeChange, isSpooky: isSpookyTheme }), _jsx(Button, { onClick: handleDownload, disabled: isDownloading, className: `shadow-lg text-white ${isSpookyTheme ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 shadow-violet-500/25' : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700'}`, children: isDownloading ? (_jsxs(_Fragment, { children: [_jsx(Loader2, { className: "w-4 h-4 mr-2 animate-spin" }), "Generating..."] })) : (_jsxs(_Fragment, { children: [_jsx(Download, { className: "w-4 h-4 mr-2" }), "Download Project"] })) }), _jsx(DeployToVercelButton, { resources: resources, proxyConfig: proxyConfig, className: `shadow-lg text-white ${isSpookyTheme ? 'bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 shadow-cyan-500/25' : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-green-500/25'}`, isSpooky: isSpookyTheme })] })] }) }), _jsx("div", { className: `p-8 ${isSpookyTheme ? 'bg-slate-950' : ''}`, children: _jsxs(Routes, { children: [_jsx(Route, { index: true, element: _jsx(Dashboard, { resources: resources, customization: customization, isSpooky: isSpookyTheme }) }), _jsx(Route, { path: ":resourceName", element: _jsx(ResourceListWrapper, { resources: resources, isSpooky: isSpookyTheme, customization: customization }) }), _jsx(Route, { path: ":resourceName/activity", element: _jsx(ResourceActivityWrapper, { resources: resources, isSpooky: isSpookyTheme }) }), _jsx(Route, { path: ":resourceName/settings", element: _jsx(ResourceSettingsWrapper, { resources: resources, isSpooky: isSpookyTheme }) }), _jsx(Route, { path: ":resourceName/new", element: _jsx(ResourceFormWrapper, { resources: resources, mode: "create", isSpooky: isSpookyTheme }) }), _jsx(Route, { path: ":resourceName/:id", element: _jsx(ResourceDetailWrapper, { resources: resources, isSpooky: isSpookyTheme }) }), _jsx(Route, { path: ":resourceName/:id/edit", element: _jsx(ResourceFormWrapper, { resources: resources, mode: "edit", isSpooky: isSpookyTheme }) })] }) })] })] }));
+    return (_jsxs("div", { className: `min-h-screen ${isSpookyTheme ? 'bg-slate-950' : 'bg-gray-50'}`, children: [_jsx(Sidebar, { resources: resources, open: sidebarOpen, onToggle: () => setSidebarOpen(!sidebarOpen), isSpooky: isSpookyTheme }), _jsxs("main", { className: `transition-all duration-300 ${sidebarOpen ? "ml-64" : "ml-16"}`, children: [_jsx("div", { className: `${isSpookyTheme ? 'bg-slate-900 border-cyan-500/30' : 'bg-white border-gray-200'} border-b px-8 py-4 sticky top-0 z-30 shadow-sm`, children: _jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsxs("h1", { className: `text-xl font-semibold ${isSpookyTheme ? 'text-cyan-400' : 'text-gray-900'}`, children: ["Admin Portal", isSpookyTheme ? ' 💀' : ''] }), _jsxs("p", { className: `text-sm ${isSpookyTheme ? 'text-gray-400' : 'text-gray-500'}`, children: [resources.length, " resources loaded"] })] }), _jsxs("div", { className: "flex items-center gap-3", children: [_jsx(ThemeToggle, { currentTheme: currentTheme, onThemeChange: handleThemeChange, isSpooky: isSpookyTheme }), _jsx(Button, { onClick: handleDownload, disabled: isDownloading, className: `shadow-lg text-white ${isSpookyTheme ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 shadow-violet-500/25' : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700'}`, children: isDownloading ? (_jsxs(_Fragment, { children: [_jsx(Loader2, { className: "w-4 h-4 mr-2 animate-spin" }), "Generating..."] })) : (_jsxs(_Fragment, { children: [_jsx(Download, { className: "w-4 h-4 mr-2" }), "Download Project"] })) }), _jsx(DeployToVercelButton, { resources: resources, proxyConfig: proxyConfig, className: `shadow-lg text-white ${isSpookyTheme ? 'bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 shadow-cyan-500/25' : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-green-500/25'}`, isSpooky: isSpookyTheme })] })] }) }), _jsx("div", { className: `p-8 ${isSpookyTheme ? 'bg-slate-950' : ''}`, children: _jsxs(Routes, { children: [_jsx(Route, { index: true, element: _jsx(Dashboard, { resources: resources, customization: customization, isSpooky: isSpookyTheme }) }), _jsx(Route, { path: ":resourceName", element: _jsx(ResourceListWrapper, { resources: resources, isSpooky: isSpookyTheme, customization: customization }) }), _jsx(Route, { path: ":resourceName/activity", element: _jsx(ResourceActivityWrapper, { resources: resources, isSpooky: isSpookyTheme }) }), _jsx(Route, { path: ":resourceName/settings", element: _jsx(ResourceSettingsWrapper, { resources: resources, isSpooky: isSpookyTheme }) }), _jsx(Route, { path: ":resourceName/new", element: _jsx(ResourceFormWrapper, { resources: resources, mode: "create", isSpooky: isSpookyTheme }) }), _jsx(Route, { path: ":resourceName/:id", element: _jsx(ResourceDetailWrapper, { resources: resources, isSpooky: isSpookyTheme }) }), _jsx(Route, { path: ":resourceName/:id/edit", element: _jsx(ResourceFormWrapper, { resources: resources, mode: "edit", isSpooky: isSpookyTheme }) })] }) })] }), _jsx(Dialog, { open: downloadModal.open, onOpenChange: (open) => setDownloadModal(prev => ({ ...prev, open })), children: _jsxs(DialogContent, { className: `sm:max-w-md ${isSpookyTheme ? 'bg-slate-900 border-cyan-500/30' : 'bg-white'}`, children: [_jsxs(DialogHeader, { children: [_jsx(DialogTitle, { className: `flex items-center gap-2 ${isSpookyTheme ? 'text-cyan-400' : 'text-gray-900'}`, children: downloadModal.status === 'success' ? (_jsxs(_Fragment, { children: [_jsx(CheckCircle2, { className: `w-6 h-6 ${isSpookyTheme ? 'text-cyan-400' : 'text-green-600'}` }), "Download Complete"] })) : (_jsxs(_Fragment, { children: [_jsx(AlertCircle, { className: "w-6 h-6 text-red-500" }), "Download Failed"] })) }), _jsx(DialogDescription, { className: isSpookyTheme ? 'text-gray-400' : 'text-gray-600', children: downloadModal.status === 'success'
+                                        ? 'Your admin portal project is ready!'
+                                        : 'There was a problem generating your project.' })] }), downloadModal.status === 'success' ? (_jsxs("div", { className: "py-4 space-y-4", children: [_jsx("div", { className: "flex items-center justify-center", children: _jsx("div", { className: `p-4 rounded-full ${isSpookyTheme ? 'bg-cyan-500/20' : 'bg-green-100'}`, children: _jsx(FolderDown, { className: `w-12 h-12 ${isSpookyTheme ? 'text-cyan-400' : 'text-green-600'}` }) }) }), _jsx("div", { className: `rounded-lg p-4 ${isSpookyTheme ? 'bg-slate-800 border border-cyan-500/20' : 'bg-gray-50 border border-gray-200'}`, children: _jsx("p", { className: `text-sm ${isSpookyTheme ? 'text-gray-300' : 'text-gray-700'}`, children: downloadModal.message }) }), _jsxs("div", { className: `rounded-lg p-4 ${isSpookyTheme ? 'bg-violet-900/20 border border-violet-500/30' : 'bg-blue-50 border border-blue-200'}`, children: [_jsx("p", { className: `text-sm font-medium mb-2 ${isSpookyTheme ? 'text-violet-400' : 'text-blue-900'}`, children: "Next Steps:" }), _jsxs("ol", { className: `text-sm space-y-1 ml-4 list-decimal ${isSpookyTheme ? 'text-violet-300' : 'text-blue-800'}`, children: [_jsx("li", { children: "Extract the ZIP file" }), _jsxs("li", { children: ["Run ", _jsx("code", { className: `px-1 rounded ${isSpookyTheme ? 'bg-slate-700' : 'bg-blue-100'}`, children: "./start.sh" }), " (Mac/Linux) or ", _jsx("code", { className: `px-1 rounded ${isSpookyTheme ? 'bg-slate-700' : 'bg-blue-100'}`, children: "start.bat" }), " (Windows)"] }), _jsxs("li", { children: ["Open ", _jsx("code", { className: `px-1 rounded ${isSpookyTheme ? 'bg-slate-700' : 'bg-blue-100'}`, children: "http://localhost:5173" }), " in your browser"] })] })] })] })) : (_jsx("div", { className: "py-4", children: _jsx("div", { className: "bg-red-50 border border-red-200 rounded-lg p-4", children: _jsx("p", { className: "text-sm text-red-700", children: downloadModal.message }) }) })), _jsx("div", { className: "flex justify-end", children: _jsx(Button, { onClick: () => setDownloadModal(prev => ({ ...prev, open: false })), className: `${isSpookyTheme ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-indigo-600 hover:bg-indigo-700'} text-white`, children: "Done" }) })] }) })] }));
 }
 // Wrapper components to extract params
 function ResourceListWrapper({ resources, isSpooky, customization }) {

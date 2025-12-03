@@ -191,7 +191,7 @@ shadcn/ui components - reusable, accessible UI primitives:
 - **`serviceTemplates.ts`** - API client services
 - **`index.ts`** - Barrel export
 
-**Proxy Templates (`templates/proxy/`)**
+**Proxy Templates (`templates/proxy/`)** *(TypeScript only - no duplicate .js files)*
 - **`proxyServerTemplates.ts`** - Express server setup
 - **`authBuilderTemplate.ts`** - Authentication handlers
 - **`soapBuilderTemplate.ts`** - SOAP request builders
@@ -871,13 +871,17 @@ Documentation archive:
 - ✅ Interactive schema editing
 - ✅ AI-powered field name cleaning
 - ✅ Complete UI customization
-- ✅ 3 deployment options
+- ✅ 3 deployment options (Browser, Download ZIP, Vercel)
 - ✅ Smart proxy with auth handling
-- ✅ Bulk operations
+- ✅ Bulk operations (select, delete, CSV export)
 - ✅ Activity logging
 - ✅ 219 passing tests
 - ✅ Production-ready code
 - ✅ Comprehensive documentation
+- ✅ Full dark/light theme support
+- ✅ Professional download success modal
+- ✅ Working delete functionality
+- ✅ Mock data for all SOAP examples
 
 ---
 
