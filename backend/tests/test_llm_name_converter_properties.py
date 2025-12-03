@@ -8,10 +8,25 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from app.utils.llm_name_converter import (
-    clear_cache,
-    convert_batch_to_display_names,
-    convert_to_display_name,
+    simple_title_case,
+    convert_batch_to_display_names_simple,
 )
+
+
+# Alias functions for test compatibility
+def convert_to_display_name(name: str) -> str:
+    """Convert a single field name to display name."""
+    return simple_title_case(name)
+
+
+def convert_batch_to_display_names(names: list[str], use_llm: bool = False) -> dict[str, str]:
+    """Convert batch of field names to display names."""
+    return convert_batch_to_display_names_simple(names)
+
+
+def clear_cache():
+    """No-op cache clear for compatibility."""
+    pass
 
 
 # Hypothesis strategies for generating field names

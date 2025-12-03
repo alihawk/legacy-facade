@@ -86,8 +86,15 @@ try {
   config = loadConfig();
   console.log(\`✓ Configuration loaded successfully\`);
   console.log(\`  API Type: \${config.apiType}\`);
-  console.log(\`  Base URL: \${config.baseUrl}\`);
+  console.log(\`  Base URL: \${config.baseUrl || '(not configured - using demo mode)'}\`);
   console.log(\`  Resources: \${config.resources.length}\`);
+  
+  // Check if in demo mode
+  const isDemoMode = !config.baseUrl || config.baseUrl === '' || config.baseUrl === 'http://localhost:8000' || config.baseUrl.includes('example.com');
+  if (isDemoMode) {
+    console.log(\`\\n⚠️  DEMO MODE: No real API configured. Using mock data.\`);
+    console.log(\`   To connect to a real API, update config.json with your API details.\`);
+  }
 } catch (error) {
   console.error('Failed to load configuration:', error);
   process.exit(1);
@@ -123,6 +130,7 @@ app.listen(PORT, () => {
 export function generateProxyRouterTemplate(): string {
   return `/**
  * Proxy Router - Handles CRUD operations and forwards to legacy API
+ * Includes mock data fallback for demo purposes
  */
 
 import { Router, Request, Response } from 'express';
@@ -132,6 +140,56 @@ import { mapFieldsToLegacy, mapFieldsFromLegacy } from './fieldMapper';
 import { buildAuthHeaders, buildSoapHeaders } from './authBuilder';
 import { buildSoapRequest, parseSoapResponse } from './soapBuilder';
 
+// Mock data for demo purposes when no real API is configured
+const MOCK_DATA: Record<string, any[]> = {
+  users: [
+    { user_id: 1, full_name: "Sarah Johnson", email_address: "sarah@company.com", dept_code: "HR", is_active: true },
+    { user_id: 2, full_name: "Michael Chen", email_address: "michael@company.com", dept_code: "ENG", is_active: true },
+    { user_id: 3, full_name: "Emily Rodriguez", email_address: "emily@company.com", dept_code: "SALES", is_active: true },
+  ],
+  getallusers: [
+    { user_id: 1, full_name: "Sarah Johnson", email_address: "sarah@company.com", dept_code: "HR", is_active: true },
+    { user_id: 2, full_name: "Michael Chen", email_address: "michael@company.com", dept_code: "ENG", is_active: true },
+  ],
+  customers: [
+    { customer_id: 1001, first_name: "John", last_name: "Smith", email: "john@email.com", status: "active" },
+    { customer_id: 1002, first_name: "Maria", last_name: "Garcia", email: "maria@email.com", status: "active" },
+  ],
+  orders: [
+    { order_id: 5001, customer_id: 1001, order_date: "2024-01-10", total_amount: 1549.98, status: "delivered" },
+    { order_id: 5002, customer_id: 1002, order_date: "2024-01-12", total_amount: 299.99, status: "shipped" },
+  ],
+  products: [
+    { product_id: 1, sku_code: "LAPTOP-001", product_name: "ProBook 15 Laptop", unit_price: 1299.99, is_available: true },
+    { product_id: 2, sku_code: "MOUSE-002", product_name: "Wireless Mouse", unit_price: 49.99, is_available: true },
+  ],
+  accounts: [
+    { account_id: "ACC-001", account_holder: "John Smith", account_type: "checking", balance: 15420.50, status: "active" },
+    { account_id: "ACC-002", account_holder: "Maria Garcia", account_type: "savings", balance: 52340.75, status: "active" },
+  ],
+};
+
+function getMockData(resource: string): any[] {
+  const key = resource.toLowerCase();
+  return MOCK_DATA[key] || [
+    { id: 1, name: \`Sample \${resource} 1\`, status: "active", created_at: "2024-01-15" },
+    { id: 2, name: \`Sample \${resource} 2\`, status: "active", created_at: "2024-01-16" },
+    { id: 3, name: \`Sample \${resource} 3\`, status: "inactive", created_at: "2024-01-17" },
+  ];
+}
+
+function getPrimaryKey(resource: string): string {
+  const pkMap: Record<string, string> = {
+    users: "user_id", getallusers: "user_id", customers: "customer_id",
+    orders: "order_id", products: "product_id", accounts: "account_id",
+  };
+  return pkMap[resource.toLowerCase()] || "id";
+}
+
+function isDemoMode(config: ProxyConfig): boolean {
+  return !config.baseUrl || config.baseUrl === '' || config.baseUrl === 'http://localhost:8000' || config.baseUrl.includes('example.com');
+}
+
 export function proxyRouter(config: ProxyConfig): Router {
   const router = Router();
 
@@ -140,7 +198,13 @@ export function proxyRouter(config: ProxyConfig): Router {
    */
   router.get('/:resource', async (req: Request, res: Response) => {
     const { resource } = req.params;
-    const resourceConfig = config.resources.find(r => r.name === resource);
+    const resourceConfig = config.resources.find(r => r.name.toLowerCase() === resource.toLowerCase());
+
+    // Demo mode - return mock data
+    if (isDemoMode(config)) {
+      console.log(\`[DEMO] Returning mock data for \${resource}\`);
+      return res.json(getMockData(resource));
+    }
 
     if (!resourceConfig) {
       return res.status(404).json({ error: \`Resource '\${resource}' not found\` });
@@ -218,7 +282,20 @@ export function proxyRouter(config: ProxyConfig): Router {
    */
   router.get('/:resource/:id', async (req: Request, res: Response) => {
     const { resource, id } = req.params;
-    const resourceConfig = config.resources.find(r => r.name === resource);
+    const resourceConfig = config.resources.find(r => r.name.toLowerCase() === resource.toLowerCase());
+
+    // Demo mode - return mock data
+    if (isDemoMode(config)) {
+      const mockData = getMockData(resource);
+      const pk = getPrimaryKey(resource);
+      const idVal = isNaN(Number(id)) ? id : Number(id);
+      const record = mockData.find((item: any) => item[pk] === idVal || item.id === idVal);
+      if (record) {
+        console.log(\`[DEMO] Returning mock record for \${resource}/\${id}\`);
+        return res.json(record);
+      }
+      return res.status(404).json({ error: \`\${resource} with id \${id} not found\` });
+    }
 
     if (!resourceConfig) {
       return res.status(404).json({ error: \`Resource '\${resource}' not found\` });

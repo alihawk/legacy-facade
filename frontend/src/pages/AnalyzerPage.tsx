@@ -64,6 +64,7 @@ export default function AnalyzerPage() {
   // INLINE STEP STATE (not modals!)
   const [currentStep, setCurrentStep] = useState<'results' | 'review' | 'customize'>('results')
   const [reviewedResources, setReviewedResources] = useState<any[]>([])
+  const [detectedBaseUrl, setDetectedBaseUrl] = useState<string>("")
   const [uiCustomization, setUiCustomization] = useState({
     dashboard: { statsCards: true, barChart: true, recentActivity: true },
     listView: { bulkSelection: true, bulkDelete: true, csvExport: true, smartFieldRendering: true },
@@ -112,6 +113,10 @@ export default function AnalyzerPage() {
       })
       const backendResources = response.data.resources as ResourceSchema[]
       setResources(backendResources)
+      // Capture baseUrl from response if available
+      if (response.data.baseUrl) {
+        setDetectedBaseUrl(response.data.baseUrl)
+      }
       setAnalyzed(true)
     } catch (err: any) {
       console.warn("Backend analyze (openapi) failed, using fallback resources.", err)
@@ -140,6 +145,10 @@ export default function AnalyzerPage() {
       })
       const backendResources = response.data.resources as ResourceSchema[]
       setResources(backendResources)
+      // Capture baseUrl from response if available
+      if (response.data.baseUrl) {
+        setDetectedBaseUrl(response.data.baseUrl)
+      }
       setAnalyzed(true)
     } catch (err: any) {
       console.warn("Backend analyze (openapi_url) failed, using fallback resources.", err)
@@ -184,6 +193,12 @@ export default function AnalyzerPage() {
       })
       const backendResources = response.data.resources as ResourceSchema[]
       setResources(backendResources)
+      // Use provided baseUrl or captured from response
+      if (response.data.baseUrl) {
+        setDetectedBaseUrl(response.data.baseUrl)
+      } else if (jsonBaseUrl.trim()) {
+        setDetectedBaseUrl(jsonBaseUrl.trim())
+      }
       setAnalyzed(true)
     } catch (err: any) {
       console.warn("Backend analyze (json_sample) failed, using fallback resources.", err)
@@ -217,6 +232,12 @@ export default function AnalyzerPage() {
       })
       const backendResources = response.data.resources as ResourceSchema[]
       setResources(backendResources)
+      // Use provided baseUrl or captured from response
+      if (response.data.baseUrl) {
+        setDetectedBaseUrl(response.data.baseUrl)
+      } else if (baseUrl) {
+        setDetectedBaseUrl(baseUrl)
+      }
       setAnalyzed(true)
     } catch (err: any) {
       console.warn("Backend analyze (endpoint) failed, using fallback resources.", err)
@@ -293,8 +314,24 @@ export default function AnalyzerPage() {
     setGenerating(true)
     
     // Use REVIEWED resources if available, otherwise use detected resources
-    const schemaToUse = reviewedResources.length > 0 ? reviewedResources : resources
-    localStorage.setItem("app-schema", JSON.stringify({ resources: schemaToUse }))
+    const rawSchema = reviewedResources.length > 0 ? reviewedResources : resources
+    
+    // Normalize operations to array format for consistency
+    const schemaToUse = rawSchema.map((resource: any) => ({
+      ...resource,
+      // Convert operations object {list: true, detail: true} to array ["list", "detail"]
+      operations: Array.isArray(resource.operations) 
+        ? resource.operations 
+        : Object.entries(resource.operations || {})
+            .filter(([_, enabled]) => enabled)
+            .map(([op]) => op)
+    }))
+    
+    // Store schema with baseUrl for proxy configuration
+    localStorage.setItem("app-schema", JSON.stringify({ 
+      resources: schemaToUse,
+      baseUrl: detectedBaseUrl || undefined
+    }))
     
     // Save UI customization settings
     localStorage.setItem("portal-customization", JSON.stringify(uiCustomization))
@@ -455,32 +492,71 @@ export default function AnalyzerPage() {
     setSpecFileName("")
   }
 
-  const loadEndpointExample = () => {
-    setBaseUrl("https://api.example.com")
-    setEndpointPath("/api/v1/users")
+  // Endpoint examples using mock data
+  const loadHREndpointExample = () => {
+    setBaseUrl("http://localhost:8000")
+    setEndpointPath("/mock/users")
     setHttpMethod("GET")
-    setAuthType("bearer")
-    setAuthValue("your-api-token-here")
+    setAuthType("none")
+    setAuthValue("")
   }
 
-  const loadJsonExample = () => {
+  const loadActivityEndpointExample = () => {
+    setBaseUrl("http://localhost:8000")
+    setEndpointPath("/mock/activity")
+    setHttpMethod("GET")
+    setAuthType("none")
+    setAuthValue("")
+  }
+
+  const loadProductsEndpointExample = () => {
+    setBaseUrl("http://localhost:8000")
+    setEndpointPath("/mock/products")
+    setHttpMethod("GET")
+    setAuthType("none")
+    setAuthValue("")
+  }
+
+  // JSON sample examples with meaningful data
+  const loadHRJsonExample = () => {
     const exampleSample = {
-      Data: {
-        Users: [
-          {
-            user_id: 1,
-            full_name: "Jane Doe",
-            email_address: "jane.doe@example.com",
-            dept_code: "HR",
-            is_active: 1,
-            hire_date: "2020-05-01",
-          },
-        ],
-      },
+      data: [
+        { user_id: 1, full_name: "Sarah Johnson", email_address: "sarah.johnson@company.com", dept_code: "HR", is_active: true, hire_date: "2019-03-15" },
+        { user_id: 2, full_name: "Michael Chen", email_address: "michael.chen@company.com", dept_code: "ENG", is_active: true, hire_date: "2020-06-22" },
+        { user_id: 3, full_name: "Emily Rodriguez", email_address: "emily.rodriguez@company.com", dept_code: "SALES", is_active: true, hire_date: "2018-11-08" },
+      ],
     }
     setJsonSample(JSON.stringify(exampleSample, null, 2))
-    setJsonBaseUrl("https://api.example.com")
-    setJsonEndpointPath("/api/v1/GetAllUsers")
+    setJsonBaseUrl("http://localhost:8000")
+    setJsonEndpointPath("/mock/users")
+    setJsonHttpMethod("GET")
+  }
+
+  const loadActivityJsonExample = () => {
+    const exampleSample = {
+      data: [
+        { activity_id: 1, timestamp: "2024-01-15T09:30:00Z", action: "User Login", user: "sarah.johnson@company.com", resource_id: 1, details: "Successful login from Chrome browser" },
+        { activity_id: 2, timestamp: "2024-01-15T10:15:00Z", action: "Record Created", user: "michael.chen@company.com", resource_id: 45, details: "Created new employee record" },
+        { activity_id: 3, timestamp: "2024-01-15T11:00:00Z", action: "Record Updated", user: "emily.rodriguez@company.com", resource_id: 23, details: "Updated contact information" },
+      ],
+    }
+    setJsonSample(JSON.stringify(exampleSample, null, 2))
+    setJsonBaseUrl("http://localhost:8000")
+    setJsonEndpointPath("/mock/activity")
+    setJsonHttpMethod("GET")
+  }
+
+  const loadProductsJsonExample = () => {
+    const exampleSample = {
+      data: [
+        { product_id: 1, sku_code: "LAPTOP-001", product_name: "ProBook 15 Laptop", category_id: 1, unit_price: 1299.99, stock_quantity: 45, is_available: true, created_date: "2023-06-15" },
+        { product_id: 2, sku_code: "MOUSE-002", product_name: "Wireless Ergonomic Mouse", category_id: 2, unit_price: 49.99, stock_quantity: 230, is_available: true, created_date: "2023-07-20" },
+        { product_id: 3, sku_code: "MONITOR-003", product_name: "UltraWide 34\" Monitor", category_id: 1, unit_price: 599.99, stock_quantity: 28, is_available: true, created_date: "2023-08-05" },
+      ],
+    }
+    setJsonSample(JSON.stringify(exampleSample, null, 2))
+    setJsonBaseUrl("http://localhost:8000")
+    setJsonEndpointPath("/mock/products")
     setJsonHttpMethod("GET")
   }
 
@@ -531,20 +607,26 @@ export default function AnalyzerPage() {
               </svg>
             </div>
 
-            <h1 className="text-5xl md:text-6xl font-bold">
-              <span
-                className="bg-clip-text text-transparent"
-                style={{ backgroundImage: "linear-gradient(135deg, #22c55e 0%, #4ade80 50%, #22c55e 100%)" }}
-              >
-                Legacy UX
-              </span>{" "}
-              <span
-                className="bg-clip-text text-transparent"
-                style={{ backgroundImage: "linear-gradient(135deg, #a855f7 0%, #f97316 100%)" }}
-              >
-                Reviver
-              </span>
-            </h1>
+            <div>
+              <h1 className="text-5xl md:text-6xl font-bold">
+                <span
+                  className="bg-clip-text text-transparent"
+                  style={{ backgroundImage: "linear-gradient(135deg, #22c55e 0%, #4ade80 50%, #22c55e 100%)" }}
+                >
+                  REST API
+                </span>{" "}
+                <span
+                  className="bg-clip-text text-transparent"
+                  style={{ backgroundImage: "linear-gradient(135deg, #a855f7 0%, #f97316 100%)" }}
+                >
+                  Reviver
+                </span>
+              </h1>
+              <div className="flex items-center justify-center gap-2 mt-2">
+                <FileJson className="w-5 h-5 text-cyan-400" />
+                <span className="text-cyan-400 font-medium">OpenAPI & REST Services</span>
+              </div>
+            </div>
           </div>
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
             Resurrect your dead APIs with modern, beautiful UIs.
@@ -780,14 +862,32 @@ export default function AnalyzerPage() {
                     />
                   </div>
 
-                  <Button
-                    variant="outline"
-                    onClick={loadEndpointExample}
-                    className="border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-purple-500/50 bg-transparent"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Load Example Endpoint
-                  </Button>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      variant="outline"
+                      onClick={loadHREndpointExample}
+                      className="border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-cyan-500/50 bg-transparent"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      HR Example
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={loadActivityEndpointExample}
+                      className="border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-amber-500/50 bg-transparent"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Activity Log
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={loadProductsEndpointExample}
+                      className="border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-violet-500/50 bg-transparent"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Products
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -841,14 +941,32 @@ export default function AnalyzerPage() {
                   </div>
 
                   <div className="flex justify-between items-center">
-                    <Button
-                      variant="outline"
-                      onClick={loadJsonExample}
-                      className="border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-teal-500/50 transition-all duration-300 bg-transparent"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      Load Example Sample
-                    </Button>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        variant="outline"
+                        onClick={loadHRJsonExample}
+                        className="border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-cyan-500/50 transition-all duration-300 bg-transparent"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        HR Example
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={loadActivityJsonExample}
+                        className="border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-amber-500/50 transition-all duration-300 bg-transparent"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Activity Log
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={loadProductsJsonExample}
+                        className="border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-violet-500/50 transition-all duration-300 bg-transparent"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Products
+                      </Button>
+                    </div>
                     <div className="text-sm text-gray-500 font-mono">{jsonSample.length} characters</div>
                   </div>
                   <p className="text-xs text-gray-500">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Routes, Route, useNavigate, useParams } from "react-router-dom"
-import { Download, Loader2 } from "lucide-react"
+import { Download, Loader2, CheckCircle2, AlertCircle, FolderDown } from "lucide-react"
 import Sidebar from "@/components/Sidebar"
 import Dashboard from "@/components/Dashboard"
 import ResourceList from "@/components/ResourceList"
@@ -11,6 +11,7 @@ import ResourceForm from "@/components/ResourceForm"
 import ResourceActivity from "@/components/ResourceActivity"
 import ResourceSettings from "@/components/ResourceSettings"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { projectGenerator } from "@/services/ProjectGenerator"
 import { DeployToVercelButton } from "@/components/DeployToVercelButton"
 import { ThemeToggle } from "@/components/ThemeToggle"
@@ -31,6 +32,12 @@ export default function PortalPage() {
   const [proxyConfig, setProxyConfig] = useState<any>(null)
   const [customization, setCustomization] = useState<any>(null)
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light')
+  const [downloadModal, setDownloadModal] = useState<{
+    open: boolean
+    status: 'success' | 'error'
+    message: string
+    hasProxyConfig: boolean
+  }>({ open: false, status: 'success', message: '', hasProxyConfig: false })
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -96,8 +103,8 @@ export default function PortalPage() {
         return
       }
 
-      // Get baseUrl from localStorage or use default
-      const baseUrl = localStorage.getItem("api-base-url") || "http://localhost:8000"
+      // Get baseUrl from schema (extracted from OpenAPI spec) or use default
+      const baseUrl = parsed.baseUrl || localStorage.getItem("api-base-url") || "http://localhost:8000"
 
       // Fetch proxy configuration from backend
       let proxyConfig = null
@@ -144,19 +151,23 @@ export default function PortalPage() {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
 
-      // Show success message
-      if (proxyConfig) {
-        alert("✅ Project downloaded successfully with proxy configuration!")
-      } else {
-        alert(
-          "✅ Project downloaded successfully!\n\n" +
-          "⚠️ Note: Using default proxy configuration.\n" +
-          "Please update proxy-server/config.json with your API details."
-        )
-      }
+      // Show success modal
+      setDownloadModal({
+        open: true,
+        status: 'success',
+        message: proxyConfig 
+          ? 'Your project has been downloaded with proxy configuration included.'
+          : 'Your project has been downloaded. Please update proxy-server/config.json with your API details.',
+        hasProxyConfig: !!proxyConfig
+      })
     } catch (error) {
       console.error("Failed to generate project:", error)
-      alert(`❌ Failed to generate project: ${error instanceof Error ? error.message : "Unknown error"}`)
+      setDownloadModal({
+        open: true,
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        hasProxyConfig: false
+      })
     } finally {
       setIsDownloading(false)
     }
@@ -246,6 +257,74 @@ export default function PortalPage() {
           </Routes>
         </div>
       </main>
+
+      {/* Download Success/Error Modal */}
+      <Dialog open={downloadModal.open} onOpenChange={(open) => setDownloadModal(prev => ({ ...prev, open }))}>
+        <DialogContent className={`sm:max-w-md ${isSpookyTheme ? 'bg-slate-900 border-cyan-500/30' : 'bg-white'}`}>
+          <DialogHeader>
+            <DialogTitle className={`flex items-center gap-2 ${isSpookyTheme ? 'text-cyan-400' : 'text-gray-900'}`}>
+              {downloadModal.status === 'success' ? (
+                <>
+                  <CheckCircle2 className={`w-6 h-6 ${isSpookyTheme ? 'text-cyan-400' : 'text-green-600'}`} />
+                  Download Complete
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="w-6 h-6 text-red-500" />
+                  Download Failed
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription className={isSpookyTheme ? 'text-gray-400' : 'text-gray-600'}>
+              {downloadModal.status === 'success' 
+                ? 'Your admin portal project is ready!'
+                : 'There was a problem generating your project.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {downloadModal.status === 'success' ? (
+            <div className="py-4 space-y-4">
+              <div className="flex items-center justify-center">
+                <div className={`p-4 rounded-full ${isSpookyTheme ? 'bg-cyan-500/20' : 'bg-green-100'}`}>
+                  <FolderDown className={`w-12 h-12 ${isSpookyTheme ? 'text-cyan-400' : 'text-green-600'}`} />
+                </div>
+              </div>
+              
+              <div className={`rounded-lg p-4 ${isSpookyTheme ? 'bg-slate-800 border border-cyan-500/20' : 'bg-gray-50 border border-gray-200'}`}>
+                <p className={`text-sm ${isSpookyTheme ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {downloadModal.message}
+                </p>
+              </div>
+
+              <div className={`rounded-lg p-4 ${isSpookyTheme ? 'bg-violet-900/20 border border-violet-500/30' : 'bg-blue-50 border border-blue-200'}`}>
+                <p className={`text-sm font-medium mb-2 ${isSpookyTheme ? 'text-violet-400' : 'text-blue-900'}`}>
+                  Next Steps:
+                </p>
+                <ol className={`text-sm space-y-1 ml-4 list-decimal ${isSpookyTheme ? 'text-violet-300' : 'text-blue-800'}`}>
+                  <li>Extract the ZIP file</li>
+                  <li>Run <code className={`px-1 rounded ${isSpookyTheme ? 'bg-slate-700' : 'bg-blue-100'}`}>./start.sh</code> (Mac/Linux) or <code className={`px-1 rounded ${isSpookyTheme ? 'bg-slate-700' : 'bg-blue-100'}`}>start.bat</code> (Windows)</li>
+                  <li>Open <code className={`px-1 rounded ${isSpookyTheme ? 'bg-slate-700' : 'bg-blue-100'}`}>http://localhost:5173</code> in your browser</li>
+                </ol>
+              </div>
+            </div>
+          ) : (
+            <div className="py-4">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-sm text-red-700">{downloadModal.message}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <Button
+              onClick={() => setDownloadModal(prev => ({ ...prev, open: false }))}
+              className={`${isSpookyTheme ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-indigo-600 hover:bg-indigo-700'} text-white`}
+            >
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -39,6 +39,7 @@ export default function AnalyzerPage() {
     // INLINE STEP STATE (not modals!)
     const [currentStep, setCurrentStep] = useState('results');
     const [reviewedResources, setReviewedResources] = useState([]);
+    const [detectedBaseUrl, setDetectedBaseUrl] = useState("");
     const [uiCustomization, setUiCustomization] = useState({
         dashboard: { statsCards: true, barChart: true, recentActivity: true },
         listView: { bulkSelection: true, bulkDelete: true, csvExport: true, smartFieldRendering: true },
@@ -83,6 +84,10 @@ export default function AnalyzerPage() {
             });
             const backendResources = response.data.resources;
             setResources(backendResources);
+            // Capture baseUrl from response if available
+            if (response.data.baseUrl) {
+                setDetectedBaseUrl(response.data.baseUrl);
+            }
             setAnalyzed(true);
         }
         catch (err) {
@@ -110,6 +115,10 @@ export default function AnalyzerPage() {
             });
             const backendResources = response.data.resources;
             setResources(backendResources);
+            // Capture baseUrl from response if available
+            if (response.data.baseUrl) {
+                setDetectedBaseUrl(response.data.baseUrl);
+            }
             setAnalyzed(true);
         }
         catch (err) {
@@ -152,6 +161,13 @@ export default function AnalyzerPage() {
             });
             const backendResources = response.data.resources;
             setResources(backendResources);
+            // Use provided baseUrl or captured from response
+            if (response.data.baseUrl) {
+                setDetectedBaseUrl(response.data.baseUrl);
+            }
+            else if (jsonBaseUrl.trim()) {
+                setDetectedBaseUrl(jsonBaseUrl.trim());
+            }
             setAnalyzed(true);
         }
         catch (err) {
@@ -184,6 +200,13 @@ export default function AnalyzerPage() {
             });
             const backendResources = response.data.resources;
             setResources(backendResources);
+            // Use provided baseUrl or captured from response
+            if (response.data.baseUrl) {
+                setDetectedBaseUrl(response.data.baseUrl);
+            }
+            else if (baseUrl) {
+                setDetectedBaseUrl(baseUrl);
+            }
             setAnalyzed(true);
         }
         catch (err) {
@@ -253,8 +276,22 @@ export default function AnalyzerPage() {
     const handleGenerate = () => {
         setGenerating(true);
         // Use REVIEWED resources if available, otherwise use detected resources
-        const schemaToUse = reviewedResources.length > 0 ? reviewedResources : resources;
-        localStorage.setItem("app-schema", JSON.stringify({ resources: schemaToUse }));
+        const rawSchema = reviewedResources.length > 0 ? reviewedResources : resources;
+        // Normalize operations to array format for consistency
+        const schemaToUse = rawSchema.map((resource) => ({
+            ...resource,
+            // Convert operations object {list: true, detail: true} to array ["list", "detail"]
+            operations: Array.isArray(resource.operations)
+                ? resource.operations
+                : Object.entries(resource.operations || {})
+                    .filter(([_, enabled]) => enabled)
+                    .map(([op]) => op)
+        }));
+        // Store schema with baseUrl for proxy configuration
+        localStorage.setItem("app-schema", JSON.stringify({
+            resources: schemaToUse,
+            baseUrl: detectedBaseUrl || undefined
+        }));
         // Save UI customization settings
         localStorage.setItem("portal-customization", JSON.stringify(uiCustomization));
         // Simulate portal generation with longer delay for the necromancer animation
@@ -409,31 +446,66 @@ export default function AnalyzerPage() {
         setSpecUrl("");
         setSpecFileName("");
     };
-    const loadEndpointExample = () => {
-        setBaseUrl("https://api.example.com");
-        setEndpointPath("/api/v1/users");
+    // Endpoint examples using mock data
+    const loadHREndpointExample = () => {
+        setBaseUrl("http://localhost:8000");
+        setEndpointPath("/mock/users");
         setHttpMethod("GET");
-        setAuthType("bearer");
-        setAuthValue("your-api-token-here");
+        setAuthType("none");
+        setAuthValue("");
     };
-    const loadJsonExample = () => {
+    const loadActivityEndpointExample = () => {
+        setBaseUrl("http://localhost:8000");
+        setEndpointPath("/mock/activity");
+        setHttpMethod("GET");
+        setAuthType("none");
+        setAuthValue("");
+    };
+    const loadProductsEndpointExample = () => {
+        setBaseUrl("http://localhost:8000");
+        setEndpointPath("/mock/products");
+        setHttpMethod("GET");
+        setAuthType("none");
+        setAuthValue("");
+    };
+    // JSON sample examples with meaningful data
+    const loadHRJsonExample = () => {
         const exampleSample = {
-            Data: {
-                Users: [
-                    {
-                        user_id: 1,
-                        full_name: "Jane Doe",
-                        email_address: "jane.doe@example.com",
-                        dept_code: "HR",
-                        is_active: 1,
-                        hire_date: "2020-05-01",
-                    },
-                ],
-            },
+            data: [
+                { user_id: 1, full_name: "Sarah Johnson", email_address: "sarah.johnson@company.com", dept_code: "HR", is_active: true, hire_date: "2019-03-15" },
+                { user_id: 2, full_name: "Michael Chen", email_address: "michael.chen@company.com", dept_code: "ENG", is_active: true, hire_date: "2020-06-22" },
+                { user_id: 3, full_name: "Emily Rodriguez", email_address: "emily.rodriguez@company.com", dept_code: "SALES", is_active: true, hire_date: "2018-11-08" },
+            ],
         };
         setJsonSample(JSON.stringify(exampleSample, null, 2));
-        setJsonBaseUrl("https://api.example.com");
-        setJsonEndpointPath("/api/v1/GetAllUsers");
+        setJsonBaseUrl("http://localhost:8000");
+        setJsonEndpointPath("/mock/users");
+        setJsonHttpMethod("GET");
+    };
+    const loadActivityJsonExample = () => {
+        const exampleSample = {
+            data: [
+                { activity_id: 1, timestamp: "2024-01-15T09:30:00Z", action: "User Login", user: "sarah.johnson@company.com", resource_id: 1, details: "Successful login from Chrome browser" },
+                { activity_id: 2, timestamp: "2024-01-15T10:15:00Z", action: "Record Created", user: "michael.chen@company.com", resource_id: 45, details: "Created new employee record" },
+                { activity_id: 3, timestamp: "2024-01-15T11:00:00Z", action: "Record Updated", user: "emily.rodriguez@company.com", resource_id: 23, details: "Updated contact information" },
+            ],
+        };
+        setJsonSample(JSON.stringify(exampleSample, null, 2));
+        setJsonBaseUrl("http://localhost:8000");
+        setJsonEndpointPath("/mock/activity");
+        setJsonHttpMethod("GET");
+    };
+    const loadProductsJsonExample = () => {
+        const exampleSample = {
+            data: [
+                { product_id: 1, sku_code: "LAPTOP-001", product_name: "ProBook 15 Laptop", category_id: 1, unit_price: 1299.99, stock_quantity: 45, is_available: true, created_date: "2023-06-15" },
+                { product_id: 2, sku_code: "MOUSE-002", product_name: "Wireless Ergonomic Mouse", category_id: 2, unit_price: 49.99, stock_quantity: 230, is_available: true, created_date: "2023-07-20" },
+                { product_id: 3, sku_code: "MONITOR-003", product_name: "UltraWide 34\" Monitor", category_id: 1, unit_price: 599.99, stock_quantity: 28, is_available: true, created_date: "2023-08-05" },
+            ],
+        };
+        setJsonSample(JSON.stringify(exampleSample, null, 2));
+        setJsonBaseUrl("http://localhost:8000");
+        setJsonEndpointPath("/mock/products");
         setJsonHttpMethod("GET");
     };
     const canAnalyze = activeTab === "openapi"
@@ -448,7 +520,7 @@ export default function AnalyzerPage() {
     if (generating) {
         return _jsx(SpookyLoader, { message: "Generating your resurrection portal...", variant: "generate" });
     }
-    return (_jsxs("div", { className: "min-h-screen relative", children: [_jsx(SpookyBackground, {}), _jsxs("div", { className: "container mx-auto px-4 py-12 max-w-5xl relative z-10", children: [_jsxs("div", { className: "text-center mb-10", children: [_jsxs("div", { className: "flex items-center justify-center gap-4 mb-4", children: [_jsxs("div", { className: "relative", children: [_jsx("div", { className: "absolute inset-0 bg-cyan-500 rounded-full blur-xl opacity-30 animate-pulse" }), _jsxs("svg", { viewBox: "0 0 80 100", className: "w-20 h-24 relative z-10 ghost-float", children: [_jsx("defs", { children: _jsxs("linearGradient", { id: "headerSkullGradient", x1: "0%", y1: "0%", x2: "0%", y2: "100%", children: [_jsx("stop", { offset: "0%", stopColor: "#f0f0f0" }), _jsx("stop", { offset: "100%", stopColor: "#a0a0a0" })] }) }), _jsx("ellipse", { cx: "40", cy: "38", rx: "32", ry: "35", fill: "url(#headerSkullGradient)" }), _jsx("ellipse", { cx: "27", cy: "35", rx: "9", ry: "11", fill: "#0a0a0a" }), _jsx("ellipse", { cx: "53", cy: "35", rx: "9", ry: "11", fill: "#0a0a0a" }), _jsx("ellipse", { cx: "27", cy: "35", rx: "5", ry: "6", fill: "#22c55e", className: "animate-pulse" }), _jsx("ellipse", { cx: "53", cy: "35", rx: "5", ry: "6", fill: "#22c55e", className: "animate-pulse" }), _jsx("path", { d: "M36 48 L40 60 L44 48", fill: "#1a1a1a" }), _jsx("rect", { x: "26", y: "68", width: "6", height: "10", rx: "1", fill: "#d0d0d0" }), _jsx("rect", { x: "34", y: "68", width: "6", height: "12", rx: "1", fill: "#d0d0d0" }), _jsx("rect", { x: "42", y: "68", width: "6", height: "12", rx: "1", fill: "#d0d0d0" }), _jsx("rect", { x: "50", y: "68", width: "6", height: "10", rx: "1", fill: "#d0d0d0" })] })] }), _jsxs("h1", { className: "text-5xl md:text-6xl font-bold", children: [_jsx("span", { className: "bg-clip-text text-transparent", style: { backgroundImage: "linear-gradient(135deg, #22c55e 0%, #4ade80 50%, #22c55e 100%)" }, children: "Legacy UX" }), " ", _jsx("span", { className: "bg-clip-text text-transparent", style: { backgroundImage: "linear-gradient(135deg, #a855f7 0%, #f97316 100%)" }, children: "Reviver" })] })] }), _jsxs("p", { className: "text-xl text-gray-300 max-w-2xl mx-auto", children: ["Resurrect your dead APIs with modern, beautiful UIs.", _jsx("span", { className: "text-cyan-400", children: " No backend changes required." })] })] }), _jsxs(Button, { variant: "ghost", onClick: () => navigate("/"), className: "mb-6 text-gray-400 hover:text-white hover:bg-slate-800/50", children: [_jsx(ArrowLeft, { className: "w-4 h-4 mr-2" }), "Back to API Selection"] }), !analyzed ? (
+    return (_jsxs("div", { className: "min-h-screen relative", children: [_jsx(SpookyBackground, {}), _jsxs("div", { className: "container mx-auto px-4 py-12 max-w-5xl relative z-10", children: [_jsxs("div", { className: "text-center mb-10", children: [_jsxs("div", { className: "flex items-center justify-center gap-4 mb-4", children: [_jsxs("div", { className: "relative", children: [_jsx("div", { className: "absolute inset-0 bg-cyan-500 rounded-full blur-xl opacity-30 animate-pulse" }), _jsxs("svg", { viewBox: "0 0 80 100", className: "w-20 h-24 relative z-10 ghost-float", children: [_jsx("defs", { children: _jsxs("linearGradient", { id: "headerSkullGradient", x1: "0%", y1: "0%", x2: "0%", y2: "100%", children: [_jsx("stop", { offset: "0%", stopColor: "#f0f0f0" }), _jsx("stop", { offset: "100%", stopColor: "#a0a0a0" })] }) }), _jsx("ellipse", { cx: "40", cy: "38", rx: "32", ry: "35", fill: "url(#headerSkullGradient)" }), _jsx("ellipse", { cx: "27", cy: "35", rx: "9", ry: "11", fill: "#0a0a0a" }), _jsx("ellipse", { cx: "53", cy: "35", rx: "9", ry: "11", fill: "#0a0a0a" }), _jsx("ellipse", { cx: "27", cy: "35", rx: "5", ry: "6", fill: "#22c55e", className: "animate-pulse" }), _jsx("ellipse", { cx: "53", cy: "35", rx: "5", ry: "6", fill: "#22c55e", className: "animate-pulse" }), _jsx("path", { d: "M36 48 L40 60 L44 48", fill: "#1a1a1a" }), _jsx("rect", { x: "26", y: "68", width: "6", height: "10", rx: "1", fill: "#d0d0d0" }), _jsx("rect", { x: "34", y: "68", width: "6", height: "12", rx: "1", fill: "#d0d0d0" }), _jsx("rect", { x: "42", y: "68", width: "6", height: "12", rx: "1", fill: "#d0d0d0" }), _jsx("rect", { x: "50", y: "68", width: "6", height: "10", rx: "1", fill: "#d0d0d0" })] })] }), _jsxs("div", { children: [_jsxs("h1", { className: "text-5xl md:text-6xl font-bold", children: [_jsx("span", { className: "bg-clip-text text-transparent", style: { backgroundImage: "linear-gradient(135deg, #22c55e 0%, #4ade80 50%, #22c55e 100%)" }, children: "REST API" }), " ", _jsx("span", { className: "bg-clip-text text-transparent", style: { backgroundImage: "linear-gradient(135deg, #a855f7 0%, #f97316 100%)" }, children: "Reviver" })] }), _jsxs("div", { className: "flex items-center justify-center gap-2 mt-2", children: [_jsx(FileJson, { className: "w-5 h-5 text-cyan-400" }), _jsx("span", { className: "text-cyan-400 font-medium", children: "OpenAPI & REST Services" })] })] })] }), _jsxs("p", { className: "text-xl text-gray-300 max-w-2xl mx-auto", children: ["Resurrect your dead APIs with modern, beautiful UIs.", _jsx("span", { className: "text-cyan-400", children: " No backend changes required." })] })] }), _jsxs(Button, { variant: "ghost", onClick: () => navigate("/"), className: "mb-6 text-gray-400 hover:text-white hover:bg-slate-800/50", children: [_jsx(ArrowLeft, { className: "w-4 h-4 mr-2" }), "Back to API Selection"] }), !analyzed ? (
                     // UPLOAD INTERFACE
                     _jsxs(Card, { className: "bg-slate-900/90 backdrop-blur-sm border-cyan-500/30 shadow-2xl spooky-card", children: [_jsx(CardHeader, { className: "border-b border-slate-800", children: _jsxs(CardTitle, { className: "text-2xl text-white flex items-center gap-3", children: [_jsx(Sparkles, { className: "w-6 h-6 text-cyan-500 animate-pulse" }), "Step 1: Connect Your API"] }) }), _jsxs(CardContent, { className: "pt-6 space-y-6", children: [_jsxs("div", { className: "flex gap-2 p-1 bg-slate-950/80 rounded-lg border border-slate-800", children: [_jsxs("button", { onClick: () => {
                                                     setActiveTab("openapi");
@@ -473,7 +545,7 @@ export default function AnalyzerPage() {
                                                             ? "Enter your token"
                                                             : authType === "api-key"
                                                                 ? "Enter your API key"
-                                                                : "username:password", className: "bg-slate-950/80 border-purple-500/30 text-purple-400 focus:border-purple-500 placeholder:text-gray-600" })] })), _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-gray-300", children: "Custom Headers (JSON)" }), _jsx(Textarea, { value: customHeaders, onChange: (e) => setCustomHeaders(e.target.value), placeholder: '{"X-Custom-Header": "value"}', className: "min-h-[80px] font-mono text-sm bg-slate-950/80 text-purple-400 border-purple-500/30 focus:border-purple-500 placeholder:text-gray-600" })] }), _jsxs(Button, { variant: "outline", onClick: loadEndpointExample, className: "border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-purple-500/50 bg-transparent", children: [_jsx(Upload, { className: "w-4 h-4 mr-2" }), "Load Example Endpoint"] })] })), activeTab === "json" && (_jsxs("div", { className: "space-y-4 animate-emerge", children: [_jsx(Textarea, { value: jsonSample, onChange: (e) => setJsonSample(e.target.value), placeholder: '{"Data": {"Users": [ { "user_id": 1, ... } ] }}', className: "min-h-[220px] font-mono text-sm bg-slate-950/80 text-teal-300 border-teal-500/30 focus:border-teal-500 placeholder:text-gray-600" }), _jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4", children: [_jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-gray-300", children: "Base URL (optional)" }), _jsx(Input, { value: jsonBaseUrl, onChange: (e) => setJsonBaseUrl(e.target.value), placeholder: "https://api.example.com", className: "bg-slate-950/80 border-teal-500/30 text-teal-300 focus:border-teal-500 placeholder:text-gray-600" }), _jsx("p", { className: "text-xs text-gray-500", children: "Leave empty if this is just a mock / design preview." })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-gray-300", children: "Endpoint Path" }), _jsx(Input, { value: jsonEndpointPath, onChange: (e) => setJsonEndpointPath(e.target.value), placeholder: "/api/v1/GetAllUsers", className: "bg-slate-950/80 border-teal-500/30 text-teal-300 focus:border-teal-500 placeholder:text-gray-600" })] })] }), _jsxs("div", { className: "space-y-2 max-w-xs", children: [_jsx("label", { className: "text-sm font-medium text-gray-300", children: "HTTP Method" }), _jsxs(Select, { value: jsonHttpMethod, onValueChange: (v) => setJsonHttpMethod(v), children: [_jsx(SelectTrigger, { className: "bg-slate-950/80 border-teal-500/30 text-white", children: _jsx(SelectValue, {}) }), _jsxs(SelectContent, { className: "bg-slate-900 border-slate-700", children: [_jsx(SelectItem, { value: "GET", children: "GET" }), _jsx(SelectItem, { value: "POST", children: "POST" }), _jsx(SelectItem, { value: "PUT", children: "PUT" }), _jsx(SelectItem, { value: "DELETE", children: "DELETE" }), _jsx(SelectItem, { value: "PATCH", children: "PATCH" })] })] })] }), _jsxs("div", { className: "flex justify-between items-center", children: [_jsxs(Button, { variant: "outline", onClick: loadJsonExample, className: "border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-teal-500/50 transition-all duration-300 bg-transparent", children: [_jsx(Upload, { className: "w-4 h-4 mr-2" }), "Load Example Sample"] }), _jsxs("div", { className: "text-sm text-gray-500 font-mono", children: [jsonSample.length, " characters"] })] }), _jsx("p", { className: "text-xs text-gray-500", children: "Paste any representative JSON response. The analyzer will infer fields and wire it to the given endpoint." })] })), error && (_jsxs("div", { className: "p-4 bg-red-900/30 border border-red-500/50 rounded-lg text-red-200 flex items-start gap-3", children: [_jsx(Skull, { className: "w-5 h-5 flex-shrink-0 mt-0.5" }), _jsxs("div", { children: [_jsx("strong", { children: "Error:" }), " ", error] })] })), _jsxs(Button, { onClick: handleAnalyze, disabled: !canAnalyze, className: "w-full text-white text-lg py-6 necro-button disabled:opacity-50 disabled:cursor-not-allowed", children: [_jsx(Skull, { className: "mr-2 w-5 h-5" }), "Analyze & Resurrect", _jsx(ChevronRight, { className: "ml-2 w-5 h-5" })] })] })] })) : (
+                                                                : "username:password", className: "bg-slate-950/80 border-purple-500/30 text-purple-400 focus:border-purple-500 placeholder:text-gray-600" })] })), _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-gray-300", children: "Custom Headers (JSON)" }), _jsx(Textarea, { value: customHeaders, onChange: (e) => setCustomHeaders(e.target.value), placeholder: '{"X-Custom-Header": "value"}', className: "min-h-[80px] font-mono text-sm bg-slate-950/80 text-purple-400 border-purple-500/30 focus:border-purple-500 placeholder:text-gray-600" })] }), _jsxs("div", { className: "flex gap-2 flex-wrap", children: [_jsxs(Button, { variant: "outline", onClick: loadHREndpointExample, className: "border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-cyan-500/50 bg-transparent", children: [_jsx(Upload, { className: "w-4 h-4 mr-2" }), "HR Example"] }), _jsxs(Button, { variant: "outline", onClick: loadActivityEndpointExample, className: "border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-amber-500/50 bg-transparent", children: [_jsx(Upload, { className: "w-4 h-4 mr-2" }), "Activity Log"] }), _jsxs(Button, { variant: "outline", onClick: loadProductsEndpointExample, className: "border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-violet-500/50 bg-transparent", children: [_jsx(Upload, { className: "w-4 h-4 mr-2" }), "Products"] })] })] })), activeTab === "json" && (_jsxs("div", { className: "space-y-4 animate-emerge", children: [_jsx(Textarea, { value: jsonSample, onChange: (e) => setJsonSample(e.target.value), placeholder: '{"Data": {"Users": [ { "user_id": 1, ... } ] }}', className: "min-h-[220px] font-mono text-sm bg-slate-950/80 text-teal-300 border-teal-500/30 focus:border-teal-500 placeholder:text-gray-600" }), _jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4", children: [_jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-gray-300", children: "Base URL (optional)" }), _jsx(Input, { value: jsonBaseUrl, onChange: (e) => setJsonBaseUrl(e.target.value), placeholder: "https://api.example.com", className: "bg-slate-950/80 border-teal-500/30 text-teal-300 focus:border-teal-500 placeholder:text-gray-600" }), _jsx("p", { className: "text-xs text-gray-500", children: "Leave empty if this is just a mock / design preview." })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-gray-300", children: "Endpoint Path" }), _jsx(Input, { value: jsonEndpointPath, onChange: (e) => setJsonEndpointPath(e.target.value), placeholder: "/api/v1/GetAllUsers", className: "bg-slate-950/80 border-teal-500/30 text-teal-300 focus:border-teal-500 placeholder:text-gray-600" })] })] }), _jsxs("div", { className: "space-y-2 max-w-xs", children: [_jsx("label", { className: "text-sm font-medium text-gray-300", children: "HTTP Method" }), _jsxs(Select, { value: jsonHttpMethod, onValueChange: (v) => setJsonHttpMethod(v), children: [_jsx(SelectTrigger, { className: "bg-slate-950/80 border-teal-500/30 text-white", children: _jsx(SelectValue, {}) }), _jsxs(SelectContent, { className: "bg-slate-900 border-slate-700", children: [_jsx(SelectItem, { value: "GET", children: "GET" }), _jsx(SelectItem, { value: "POST", children: "POST" }), _jsx(SelectItem, { value: "PUT", children: "PUT" }), _jsx(SelectItem, { value: "DELETE", children: "DELETE" }), _jsx(SelectItem, { value: "PATCH", children: "PATCH" })] })] })] }), _jsxs("div", { className: "flex justify-between items-center", children: [_jsxs("div", { className: "flex gap-2 flex-wrap", children: [_jsxs(Button, { variant: "outline", onClick: loadHRJsonExample, className: "border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-cyan-500/50 transition-all duration-300 bg-transparent", children: [_jsx(Upload, { className: "w-4 h-4 mr-2" }), "HR Example"] }), _jsxs(Button, { variant: "outline", onClick: loadActivityJsonExample, className: "border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-amber-500/50 transition-all duration-300 bg-transparent", children: [_jsx(Upload, { className: "w-4 h-4 mr-2" }), "Activity Log"] }), _jsxs(Button, { variant: "outline", onClick: loadProductsJsonExample, className: "border-slate-700 text-gray-300 hover:bg-slate-800 hover:border-violet-500/50 transition-all duration-300 bg-transparent", children: [_jsx(Upload, { className: "w-4 h-4 mr-2" }), "Products"] })] }), _jsxs("div", { className: "text-sm text-gray-500 font-mono", children: [jsonSample.length, " characters"] })] }), _jsx("p", { className: "text-xs text-gray-500", children: "Paste any representative JSON response. The analyzer will infer fields and wire it to the given endpoint." })] })), error && (_jsxs("div", { className: "p-4 bg-red-900/30 border border-red-500/50 rounded-lg text-red-200 flex items-start gap-3", children: [_jsx(Skull, { className: "w-5 h-5 flex-shrink-0 mt-0.5" }), _jsxs("div", { children: [_jsx("strong", { children: "Error:" }), " ", error] })] })), _jsxs(Button, { onClick: handleAnalyze, disabled: !canAnalyze, className: "w-full text-white text-lg py-6 necro-button disabled:opacity-50 disabled:cursor-not-allowed", children: [_jsx(Skull, { className: "mr-2 w-5 h-5" }), "Analyze & Resurrect", _jsx(ChevronRight, { className: "ml-2 w-5 h-5" })] })] })] })) : (
                     // RESULTS INTERFACE
                     _jsxs(Card, { className: "bg-slate-900/90 backdrop-blur-sm border-cyan-500/30 shadow-2xl spooky-card", children: [_jsx(CardHeader, { className: "border-b border-slate-800", children: _jsxs("div", { className: "flex items-center gap-3", children: [_jsx("div", { className: "w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center", children: _jsx(Sparkles, { className: "w-5 h-5 text-cyan-400" }) }), _jsxs("div", { children: [_jsxs(CardTitle, { className: "text-2xl text-white", children: ["Found ", resources.length, " Resource", resources.length !== 1 ? "s" : ""] }), _jsx("p", { className: "text-gray-400 mt-1", children: "Your API has been analyzed and is ready for resurrection" })] })] }) }), _jsxs(CardContent, { className: "pt-6 space-y-4", children: [currentStep === 'results' && resources.map((resource) => (_jsx("div", { className: "p-5 bg-slate-950/80 border border-cyan-500/20 rounded-lg hover:border-cyan-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10", children: _jsxs("div", { className: "space-y-4", children: [_jsxs("div", { children: [_jsxs("h3", { className: "text-xl font-semibold text-cyan-400 mb-2 flex items-center gap-2", children: [_jsx("div", { className: "w-2 h-2 rounded-full bg-cyan-500 animate-pulse" }), resource.displayName] }), _jsxs("p", { className: "text-sm text-gray-400 mb-3", children: [resource.fields.length, " fields | ", Array.isArray(resource.operations) ? resource.operations.length : Object.keys(resource.operations || {}).length, " operations"] }), _jsx("div", { className: "flex gap-2 flex-wrap", children: (Array.isArray(resource.operations) ? resource.operations : Object.keys(resource.operations || {})).map((op) => (_jsx("span", { className: "text-xs px-3 py-1 bg-slate-800 text-gray-300 rounded-full border border-slate-700 hover:border-cyan-500/50 transition-colors", children: op }, op))) })] }), _jsxs("div", { className: "space-y-2", children: [_jsxs("h4", { className: "text-sm font-medium text-gray-400 flex items-center gap-2", children: [_jsx(Braces, { className: "w-4 h-4 text-purple-400" }), "Fields"] }), _jsx("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-2", children: resource.fields.map((field) => (_jsxs("div", { className: "flex items-center justify-between p-2 bg-slate-900/60 border border-slate-800 rounded hover:border-purple-500/30 transition-colors group", children: [_jsxs("div", { className: "flex items-center gap-2 min-w-0", children: [_jsx("code", { className: "text-xs font-mono text-purple-300 truncate", children: field.name }), field.name === resource.primaryKey && (_jsx("span", { className: "text-[10px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 rounded border border-cyan-500/30 font-semibold", children: "PK" }))] }), _jsxs("div", { className: "flex items-center gap-2 flex-shrink-0", children: [_jsx("span", { className: "text-[10px] px-2 py-0.5 bg-slate-800 text-gray-400 rounded font-mono", children: field.type }), _jsx(ChevronRight, { className: "w-3 h-3 text-gray-600 group-hover:text-purple-400 transition-colors" }), _jsx("span", { className: "text-xs text-gray-300 group-hover:text-white transition-colors", children: field.displayName })] })] }, field.name))) })] })] }) }, resource.name))), currentStep === 'review' && (_jsxs("div", { className: "space-y-6 animate-emerge", children: [_jsxs("div", { className: "text-center mb-6", children: [_jsx("h3", { className: "text-2xl font-bold text-cyan-400 mb-2", children: "Step 2: Review Schema" }), _jsx("p", { className: "text-gray-400", children: "Edit operations, fields, and types" })] }), reviewedResources.map((resource, idx) => (_jsxs("div", { className: "p-5 bg-slate-950/80 border border-cyan-500/20 rounded-lg", children: [_jsx("h4", { className: "text-lg font-semibold text-cyan-400 mb-4", children: resource.displayName }), _jsxs("div", { className: "mb-4", children: [_jsx("h5", { className: "text-sm font-medium text-gray-300 mb-2", children: "Operations" }), _jsx("p", { className: "text-xs text-gray-500 mb-2", children: "\uD83D\uDCA1 Tip: \"Detail\" is read-only. Selecting only \"Detail\" will disable create/update/delete operations." }), _jsx("div", { className: "flex flex-wrap gap-2", children: Object.entries(resource.operations).map(([op, enabled]) => {
                                                                     // Check if only "detail" and "list" are enabled (read-only mode)

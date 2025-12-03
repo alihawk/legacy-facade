@@ -42,10 +42,10 @@ export default function App() {
 
         <main className={\`transition-all duration-300 \${sidebarOpen ? "ml-64" : "ml-16"}\`}>
           {/* Theme Toggle Header */}
-          <div className={\`\${isSpookyTheme ? 'bg-slate-900 border-green-500/30' : 'bg-white border-gray-200'} border-b px-8 py-4 sticky top-0 z-30 shadow-sm\`}>
+          <div className={\`\${isSpookyTheme ? 'bg-slate-900 border-cyan-500/30' : 'bg-white border-gray-200'} border-b px-8 py-4 sticky top-0 z-30 shadow-sm\`}>
             <div className="flex items-center justify-between">
               <div>
-                <h1 className={\`text-xl font-semibold \${isSpookyTheme ? 'text-green-400' : 'text-gray-900'}\`}>
+                <h1 className={\`text-xl font-semibold \${isSpookyTheme ? 'text-cyan-400' : 'text-gray-900'}\`}>
                   {isSpookyTheme ? '💀 ' : ''}Admin Portal
                 </h1>
                 <p className={\`text-sm \${isSpookyTheme ? 'text-gray-400' : 'text-gray-500'}\`}>
@@ -56,12 +56,12 @@ export default function App() {
                 variant="outline"
                 size="sm"
                 onClick={toggleTheme}
-                className="gap-2 border-gray-200 hover:bg-gray-50 px-3"
+                className={\`gap-2 px-3 \${isSpookyTheme ? 'border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10' : 'border-gray-200 hover:bg-gray-50'}\`}
               >
                 {currentTheme === 'dark' ? (
                   <>
                     <Moon className="w-4 h-4" />
-                    <span className="hidden sm:inline">Spooky</span>
+                    <span className="hidden sm:inline">Dark</span>
                   </>
                 ) : (
                   <>

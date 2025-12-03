@@ -4,7 +4,7 @@
 - **Event:** Kiroween 2025
 - **Category:** Resurrection (bringing dead UIs back to life)
 - **Bonus Categories:** Frankenstein (stitching APIs + UIs), Best Startup Project
-- **Theme:** Spooky Halloween aesthetic for analyzer, modern light UI for generated portals
+- **Theme:** Spooky Halloween aesthetic for analyzer, modern light/dark UI for generated portals
 
 ## Problem Statement
 Companies have internal tools from 2010 with terrible UIs. Backend APIs work fine, but UX makes employees miserable. Full rewrites cost $100K+ and take months. Productivity suffers because people hate using the tools.
@@ -12,88 +12,139 @@ Companies have internal tools from 2010 with terrible UIs. Backend APIs work fin
 ## Solution
 Auto-generate modern React frontends from existing legacy APIs with ZERO backend changes. Deploy in days, not months.
 
+## Complete Feature Set
+
+### 1. Multi-Protocol API Support
+- **REST APIs**: OpenAPI/Swagger spec, live endpoint probing, JSON sample inference
+- **SOAP APIs**: WSDL parsing, SOAP endpoint analysis, XML sample inference
+- Automatic baseUrl extraction from OpenAPI `servers` field
+
+### 2. Smart Proxy Layer
+- Forwards frontend requests to legacy backend (solves CORS)
+- Supports multiple auth modes: Bearer, API Key, Basic, WSSE
+- Field mapping for legacy→modern field name translation
+- Mock data fallback for demo mode
+
+### 3. UI Generation Engine
+- Dynamic CRUD interfaces from any schema
+- Dashboard with stats cards, charts, recent activity
+- Bulk selection, CSV export, smart field rendering
+- Light/Dark theme support with accent colors
+
+### 4. Deployment Options
+- **Download ZIP**: Complete project with frontend + proxy server
+- **Deploy to Vercel**: One-click deployment with serverless functions
+- Startup scripts for easy local development
+
 ## Project Architecture
 
 ### Frontend (`frontend/`)
-- **Tech Stack:** React + Vite + TypeScript + Tailwind + shadcn/ui
+- **Tech Stack:** React 19 + Vite 7 + TypeScript + Tailwind 4 + shadcn/ui
 - **Key Pages:**
-  - `AnalyzerPage.tsx` - User uploads OpenAPI spec or connects endpoint
-  - `PortalPage.tsx` - Main container with sidebar + dynamic content
-  - `ResourceList.tsx` - Generic table component for any resource
-  - `ResourceDetail.tsx` - Generic detail view for any record
-  - `ResourceForm.tsx` - Generic create/edit form
-  - `Dashboard.tsx` - Portal home with stats
+  - `LandingPage.tsx` - API type selection (REST vs SOAP)
+  - `AnalyzerPage.tsx` - REST API analysis (OpenAPI, endpoint, JSON)
+  - `SOAPAnalyzerPage.tsx` - SOAP API analysis (WSDL, endpoint, XML)
+  - `PortalPage.tsx` - Generated admin portal with routing
+- **Key Components:**
+  - `Dashboard.tsx` - Stats, charts, recent activity
+  - `ResourceList.tsx` - Data grid with bulk actions
+  - `ResourceDetail.tsx` - Record detail view
+  - `ResourceForm.tsx` - Create/edit forms
+  - `SchemaReviewStep.tsx` - Field customization
+  - `UICustomizationStep.tsx` - Theme/feature selection
 
 ### Backend (`backend/`)
-- **Tech Stack:** Python 3.11 + FastAPI
-- **Main Endpoint:** `/api/analyze`
-  - Accepts 3 modes: `openapi`, `endpoint`, `json_sample`
-  - Returns normalized `ResourceSchema[]`
+- **Tech Stack:** Python 3.11 + FastAPI + httpx
+- **Analyzers:**
+  - `openapi_analyzer.py` - OpenAPI/Swagger parsing with baseUrl extraction
+  - `endpoint_analyzer.py` - Live REST endpoint probing
+  - `json_analyzer.py` - JSON sample inference
+  - `wsdl_analyzer.py` - WSDL parsing
+  - `soap_endpoint_analyzer.py` - SOAP endpoint probing
+  - `soap_xml_analyzer.py` - XML sample inference
+- **Proxy:**
+  - `proxy.py` - Request forwarding with auth
+  - `proxy_config_manager.py` - Configuration management
+  - `soap_request_builder.py` - SOAP envelope construction
+- **Deployment:**
+  - `vercel_deployer.py` - Vercel API integration
+  - `vercel_frontend_generator.py` - React project generation
+  - `vercel_proxy_generator.py` - Serverless function generation
 
-
-1. API INTROSPECTION ENGINE  
-
-Analyzes your existing API and understands its structure without needing documentation.
-
-- Connect to legacy API                       
-- Discover endpoints, schemas, relationships  
-- Generate internal schema representation 
-
-// User provides base URL
-Input: "https://legacy-api.company.com/api/v1"
-
-// System does:
-1. Find endpoints by trying common patterns:
-   - GET /users, /customers, /products, /orders
-   - Try plural and singular forms
-   
-2. Make sample requests to understand:
-   - Response structure
-   - Field types (string, number, date, boolean)
-   - Pagination format
-   - Authentication requirements
-
+### Generated Project Structure
 ```
-// System looks at actual data to infer types
-{ "email": "john@example.com" } → Email field (add validation)
-{ "created_at": "2024-11-22T10:30:00Z" } → DateTime (date picker)
-{ "status": "active" } → Enum (dropdown if limited values)
-{ "description": "Lorem ipsum..." } → Text area (if > 100 chars)
-{ "price": 29.99 } → Currency (format with $ symbol)
-{ "avatar_url": "https://..." } → Image (show preview)
+downloaded-project/
+├── frontend/           # React + Vite app
+│   ├── src/
+│   │   ├── components/ # UI components
+│   │   ├── services/   # API client
+│   │   └── config/     # Resource definitions
+│   └── package.json
+├── proxy-server/       # Express proxy
+│   ├── src/
+│   │   ├── proxy.ts    # Request forwarding
+│   │   ├── authBuilder.ts
+│   │   └── config.ts
+│   └── config.json     # API configuration
+├── start.sh            # Mac/Linux startup
+└── start.bat           # Windows startup
 ```
-3. Detect relationships:
-   - If GET /users/123 returns { "orderId": 456 }
-   - System knows users relate to orders
 
-2. UI GENERATION ENGINE    
+## Data Flow
 
-- Create CRUD screens for each resource        
-- Generate forms, tables, filters              
-- Apply modern UI patterns                     
+### Analysis Flow
+```
+User Input → Analyzer Page → POST /api/analyze → Backend Analyzer
+                                                      ↓
+                                              Extract resources + baseUrl
+                                                      ↓
+                                              Return { resources, baseUrl }
+                                                      ↓
+                                              Store in localStorage
+```
 
-3. SMART PROXY LAYER
+### Runtime Flow (Downloaded Project)
+```
+Frontend (localhost:5173) → Proxy (localhost:4000) → Legacy API (real URL)
+         ↓                          ↓                        ↓
+    Modern React UI          Add auth headers          Original backend
+                             Handle CORS
+                             Map fields
+```
 
-- Routes frontend calls to legacy backend      
-- Attaches headers, cookies, handles login flows
-- Backend-to-backend calls, exposes CORS-correct API
-- Tracks which endpoints are called (analytics)
+## Key Innovations
 
-### Data Flow
-User → AnalyzerPage → /api/analyze → ResourceSchema[] → localStorage → PortalPage → Generated UI
+1. **BaseUrl Auto-Detection**: Extracts server URL from OpenAPI spec's `servers` field
+2. **Protocol Agnostic**: Same UI generation for REST and SOAP APIs
+3. **Zero Config Deployment**: Downloaded projects work out-of-the-box
+4. **Theme Persistence**: Light/dark mode saved and applied to generated projects
 
-## Key Innovation
-**Dynamic UI Generation:** One set of generic React components (List, Detail, Form) adapts to ANY API schema. No code generation needed - pure runtime rendering.
+## Kiro Usage Throughout Development
 
-## Kiro Usage
-- **Specs:** Define API introspection, UI generation, proxy layer
-- **Steering:** Maintain spooky theme, coding standards, component patterns
-- **Hooks:** Auto-lint, build checks, component reviews
-- **MCP:** One-click Vercel deployment
-- **Vibe Coding:** Used Kiro chat to generate initial components, then iterated
+### Specs Created
+- `api-introspection/` - Analyzer requirements and design
+- `smart-proxy-layer/` - Proxy architecture
+- `ui-generation/` - Portal component specs
+- `vercel-deployment/` - Deployment integration
+- `schema-customization/` - Field editing features
 
-## Success Metrics
-- Upload API spec → Working portal in < 30 seconds
-- Zero backend code changes required
-- Works with ANY REST API
-- Beautiful before/after transformation
+### Steering Rules Applied
+- `tech.md` - Stack versions and commands
+- `structure.md` - File organization
+- `frontend-coding-standards.md` - React patterns
+- `python-conventions.md` - Backend standards
+- `fastapi-conventions.md` - API design
+- `smart-proxy.md` - Proxy architecture
+
+### Hooks Configured
+- `lint-on-save` - Auto-fix TypeScript and Python
+- `build-check` - Verify frontend builds
+- `component-review` - UI component standards
+
+## Success Metrics Achieved
+- ✅ Upload API spec → Working portal in < 30 seconds
+- ✅ Zero backend code changes required
+- ✅ Works with REST and SOAP APIs
+- ✅ Beautiful before/after transformation
+- ✅ One-click Vercel deployment
+- ✅ Downloadable standalone project

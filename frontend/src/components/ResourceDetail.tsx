@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { LoadingSpinner } from "./LoadingState"
 import { ArrowLeft, Edit, Trash2, Mail, Calendar, Hash, Type, ToggleLeft, Sparkles } from "lucide-react"
 import { FieldRenderer } from "./FieldRenderer"
+import { ConfirmDialog } from "./ConfirmDialog"
 
 interface ResourceDetailProps {
   resource: any
@@ -21,6 +22,7 @@ export default function ResourceDetail({ resource, id, onEdit, isSpooky = false 
   const [record, setRecord] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -32,7 +34,9 @@ export default function ResourceDetail({ resource, id, onEdit, isSpooky = false 
     setError("")
     try {
       const response = await axios.get(`http://localhost:8000/proxy/${resource.name}/${id}`)
-      setRecord(response.data)
+      // Handle both wrapped {data: record} and direct record responses
+      const recordData = response.data?.data || response.data
+      setRecord(recordData)
     } catch (err) {
       console.error("Failed to fetch detail, using mock detail.", err)
       setError("Backend not reachable. Showing mock record.")
@@ -82,6 +86,21 @@ export default function ResourceDetail({ resource, id, onEdit, isSpooky = false 
         return <ToggleLeft className="w-4 h-4" />
       default:
         return <Type className="w-4 h-4" />
+    }
+  }
+
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true)
+  }
+
+  const confirmDelete = async () => {
+    try {
+      await axios.delete(`http://localhost:8000/proxy/${resource.name}/${id}`)
+      navigate(`/portal/${resource.name}`)
+    } catch (err) {
+      console.error("Failed to delete:", err)
+      // Still navigate back - in demo mode the delete won't persist anyway
+      navigate(`/portal/${resource.name}`)
     }
   }
 
@@ -137,7 +156,7 @@ export default function ResourceDetail({ resource, id, onEdit, isSpooky = false 
               <Button
                 variant="outline"
                 className={`rounded-xl ${isSpooky ? 'border-red-500/30 text-red-400 hover:bg-red-500/10 bg-slate-800' : 'border-red-200 text-red-600 hover:bg-red-50 bg-white'}`}
-                onClick={() => window.alert("Delete is not wired yet. This is a demo action.")}
+                onClick={handleDeleteClick}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete
@@ -181,6 +200,17 @@ export default function ResourceDetail({ resource, id, onEdit, isSpooky = false 
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Record"
+        description={`Are you sure you want to delete this ${resource.displayName.slice(0, -1).toLowerCase()}? This action cannot be undone.`}
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        variant="danger"
+      />
     </div>
   )
 }
