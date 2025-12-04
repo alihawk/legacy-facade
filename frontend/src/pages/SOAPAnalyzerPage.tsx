@@ -12,6 +12,8 @@ import SpookyBackground from "@/components/SpookyBackground"
 import SpookyLoader from "@/components/SpookyLoader"
 import axios from "axios"
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
 interface ResourceField {
   name: string
   type: string
@@ -98,7 +100,7 @@ export default function SOAPAnalyzerPage() {
     setError("")
 
     try {
-      const response = await axios.post("http://localhost:8000/api/analyze", {
+      const response = await axios.post(`${API_URL}/api/analyze`, {
         mode: "wsdl",
         wsdlContent: wsdlContent,
       })
@@ -130,7 +132,7 @@ export default function SOAPAnalyzerPage() {
     setError("")
 
     try {
-      const response = await axios.post("http://localhost:8000/api/analyze", {
+      const response = await axios.post(`${API_URL}/api/analyze`, {
         mode: "wsdl_url",
         wsdlUrl: wsdlUrl.trim(),
       })
@@ -167,7 +169,7 @@ export default function SOAPAnalyzerPage() {
     setError("")
 
     try {
-      const response = await axios.post("http://localhost:8000/api/analyze", {
+      const response = await axios.post(`${API_URL}/api/analyze`, {
         mode: "soap_xml_sample",
         sampleXml: xmlSample,
         baseUrl: xmlBaseUrl.trim() || undefined,
@@ -204,7 +206,7 @@ export default function SOAPAnalyzerPage() {
     setError("")
 
     try {
-      const response = await axios.post("http://localhost:8000/api/analyze", {
+      const response = await axios.post(`${API_URL}/api/analyze`, {
         mode: "soap_endpoint",
         baseUrl: soapBaseUrl,
         soapAction: soapAction,
@@ -314,7 +316,7 @@ export default function SOAPAnalyzerPage() {
             fieldMappings: []
           }))
         }
-        await axios.post("http://localhost:8000/api/proxy/config", proxyConfig)
+        await axios.post(`${API_URL}/api/proxy/config`, proxyConfig)
         console.log("✓ SOAP Proxy configuration saved")
       } catch (err) {
         console.warn("Could not save proxy config:", err)
@@ -619,7 +621,7 @@ export default function SOAPAnalyzerPage() {
 
   // SOAP Endpoint examples - using mock data endpoints
   const loadCustomerEndpointExample = () => {
-    setSoapBaseUrl("http://localhost:8000/mock/soap/customers")
+    setSoapBaseUrl(`${API_URL}/mock/soap/customers`)
     setSoapAction("http://example.com/GetCustomers")
     setSoapAuthType("none")
     setSoapUsername("")
@@ -627,7 +629,7 @@ export default function SOAPAnalyzerPage() {
   }
 
   const loadOrderEndpointExample = () => {
-    setSoapBaseUrl("http://localhost:8000/mock/soap/orders")
+    setSoapBaseUrl(`${API_URL}/mock/soap/orders`)
     setSoapAction("http://example.com/GetOrders")
     setSoapAuthType("none")
     setSoapUsername("")
@@ -635,7 +637,7 @@ export default function SOAPAnalyzerPage() {
   }
 
   const loadBankingEndpointExample = () => {
-    setSoapBaseUrl("http://localhost:8000/mock/soap/accounts")
+    setSoapBaseUrl(`${API_URL}/mock/soap/accounts`)
     setSoapAction("http://example.com/GetAccounts")
     setSoapAuthType("wsse")
     setSoapUsername("bank_user")
@@ -674,7 +676,7 @@ export default function SOAPAnalyzerPage() {
   </soap:Body>
 </soap:Envelope>`
     setXmlSample(exampleXml)
-    setXmlBaseUrl("http://localhost:8000/mock/customers")
+    setXmlBaseUrl(`${API_URL}/mock/customers`)
     setXmlSoapAction("http://example.com/GetCustomers")
     setXmlOperationName("GetCustomers")
   }
@@ -708,7 +710,7 @@ export default function SOAPAnalyzerPage() {
   </soap:Body>
 </soap:Envelope>`
     setXmlSample(exampleXml)
-    setXmlBaseUrl("http://localhost:8000/mock/orders")
+    setXmlBaseUrl(`${API_URL}/mock/orders`)
     setXmlSoapAction("http://example.com/GetOrders")
     setXmlOperationName("GetOrders")
   }
@@ -742,7 +744,7 @@ export default function SOAPAnalyzerPage() {
   </soap:Body>
 </soap:Envelope>`
     setXmlSample(exampleXml)
-    setXmlBaseUrl("http://localhost:8000/mock/accounts")
+    setXmlBaseUrl(`${API_URL}/mock/accounts`)
     setXmlSoapAction("http://example.com/GetAccounts")
     setXmlOperationName("GetAccounts")
   }

@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Save, Sparkles } from "lucide-react"
 import { FieldRenderer } from "./FieldRenderer"
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
 interface ResourceFormProps {
   resource: any
   mode: "create" | "edit"
@@ -44,7 +46,7 @@ export default function ResourceForm({ resource, mode, id, onSuccess, onCancel, 
     setLoading(true)
     setLoadError("")
     try {
-      const response = await axios.get(`http://localhost:8000/proxy/${resource.name}/${id}`)
+      const response = await axios.get(`${API_URL}/proxy/${resource.name}/${id}`)
       setFormData(response.data)
     } catch (err) {
       console.error("Failed to fetch record for edit, using mock data.", err)
@@ -94,9 +96,9 @@ export default function ResourceForm({ resource, mode, id, onSuccess, onCancel, 
     setLoading(true)
     try {
       if (mode === "create") {
-        await axios.post(`http://localhost:8000/proxy/${resource.name}`, formData)
+        await axios.post(`${API_URL}/proxy/${resource.name}`, formData)
       } else if (mode === "edit" && id) {
-        await axios.put(`http://localhost:8000/proxy/${resource.name}/${id}`, formData)
+        await axios.put(`${API_URL}/proxy/${resource.name}/${id}`, formData)
       }
       onSuccess()
     } catch (err) {

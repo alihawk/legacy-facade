@@ -11,6 +11,8 @@ import { ArrowLeft, Edit, Trash2, Mail, Calendar, Hash, Type, ToggleLeft, Sparkl
 import { FieldRenderer } from "./FieldRenderer"
 import { ConfirmDialog } from "./ConfirmDialog"
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
 interface ResourceDetailProps {
   resource: any
   id: string
@@ -33,7 +35,7 @@ export default function ResourceDetail({ resource, id, onEdit, isSpooky = false 
     setLoading(true)
     setError("")
     try {
-      const response = await axios.get(`http://localhost:8000/proxy/${resource.name}/${id}`)
+      const response = await axios.get(`${API_URL}/proxy/${resource.name}/${id}`)
       // Handle both wrapped {data: record} and direct record responses
       const recordData = response.data?.data || response.data
       setRecord(recordData)
@@ -95,7 +97,7 @@ export default function ResourceDetail({ resource, id, onEdit, isSpooky = false 
 
   const confirmDelete = async () => {
     try {
-      await axios.delete(`http://localhost:8000/proxy/${resource.name}/${id}`)
+      await axios.delete(`${API_URL}/proxy/${resource.name}/${id}`)
       navigate(`/portal/${resource.name}`)
     } catch (err) {
       console.error("Failed to delete:", err)

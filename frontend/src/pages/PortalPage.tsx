@@ -16,6 +16,8 @@ import { projectGenerator } from "@/services/ProjectGenerator"
 import { DeployToVercelButton } from "@/components/DeployToVercelButton"
 import { ThemeToggle } from "@/components/ThemeToggle"
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
 interface ResourceSchema {
   name: string
   displayName: string
@@ -73,7 +75,7 @@ export default function PortalPage() {
     // Fetch proxy configuration
     const fetchProxyConfig = async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/proxy/config")
+        const response = await fetch(`${API_URL}/api/proxy/config`)
         if (response.ok) {
           const data = await response.json()
           setProxyConfig(data)
@@ -104,12 +106,12 @@ export default function PortalPage() {
       }
 
       // Get baseUrl from schema (extracted from OpenAPI spec) or use default
-      const baseUrl = parsed.baseUrl || localStorage.getItem("api-base-url") || "http://localhost:8000"
+      const baseUrl = parsed.baseUrl || localStorage.getItem("api-base-url") || API_URL
 
       // Fetch proxy configuration from backend
       let proxyConfig = null
       try {
-        const proxyConfigResponse = await fetch("http://localhost:8000/api/proxy/config")
+        const proxyConfigResponse = await fetch(`${API_URL}/api/proxy/config`)
         if (proxyConfigResponse.ok) {
           const data = await proxyConfigResponse.json()
           proxyConfig = data

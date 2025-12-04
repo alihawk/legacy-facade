@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Rocket, Loader2, ExternalLink, CheckCircle2, AlertCircle } from "lucide-react";
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
 interface DeployToVercelButtonProps {
   resources: any[];
   proxyConfig: any;
@@ -48,7 +50,7 @@ export function DeployToVercelButton({ resources, proxyConfig, className, isSpoo
     try {
       // Don't send frontend_files - let the backend generate fresh files
       // with the correct Vercel proxy URL baked in
-      const response = await fetch("http://localhost:8000/api/deploy/vercel", {
+      const response = await fetch(`${API_URL}/api/deploy/vercel`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

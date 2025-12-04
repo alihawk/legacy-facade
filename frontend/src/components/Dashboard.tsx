@@ -9,6 +9,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { format } from 'date-fns'
 import axios from 'axios'
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
 interface DashboardProps {
   resources: any[]
   customization?: any
@@ -70,7 +72,7 @@ export default function Dashboard({ resources, customization, isSpooky = false }
     // Fetch counts for each resource
     for (const resource of resources) {
       try {
-        const response = await axios.get(`http://localhost:8000/proxy/${resource.name}`)
+        const response = await axios.get(`${API_URL}/proxy/${resource.name}`)
         const extractedData = extractDataArray(response.data)
         counts[resource.name] = extractedData.length
         console.log(`[Dashboard] ${resource.name}: found ${extractedData.length} records`, response.data)

@@ -12,6 +12,8 @@ import SpookyBackground from "@/components/SpookyBackground"
 import SpookyLoader from "@/components/SpookyLoader"
 import axios from "axios"
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
 interface ResourceField {
   name: string
   type: string
@@ -107,7 +109,7 @@ export default function AnalyzerPage() {
     }
 
     try {
-      const response = await axios.post("http://localhost:8000/api/analyze", {
+      const response = await axios.post(`${API_URL}/api/analyze`, {
         mode: "openapi",
         specJson: spec,
       })
@@ -139,7 +141,7 @@ export default function AnalyzerPage() {
     setError("")
 
     try {
-      const response = await axios.post("http://localhost:8000/api/analyze", {
+      const response = await axios.post(`${API_URL}/api/analyze`, {
         mode: "openapi_url",
         specUrl: specUrl.trim(),
       })
@@ -184,7 +186,7 @@ export default function AnalyzerPage() {
     setError("")
 
     try {
-      const response = await axios.post("http://localhost:8000/api/analyze", {
+      const response = await axios.post(`${API_URL}/api/analyze`, {
         mode: "json_sample",
         sampleJson: sample,
         baseUrl: jsonBaseUrl.trim() || undefined,
@@ -221,7 +223,7 @@ export default function AnalyzerPage() {
     setError("")
 
     try {
-      const response = await axios.post("http://localhost:8000/api/analyze", {
+      const response = await axios.post(`${API_URL}/api/analyze`, {
         mode: "endpoint",
         baseUrl,
         endpointPath,
@@ -294,7 +296,7 @@ export default function AnalyzerPage() {
     setError("")
 
     try {
-      const response = await axios.post("http://localhost:8000/api/clean-names", {
+      const response = await axios.post(`${API_URL}/api/clean-names`, {
         resources,
       })
       const cleanedResources = response.data.resources as ResourceSchema[]
@@ -351,7 +353,7 @@ export default function AnalyzerPage() {
             fieldMappings: []
           }))
         }
-        await axios.post("http://localhost:8000/api/proxy/config", proxyConfig)
+        await axios.post(`${API_URL}/api/proxy/config`, proxyConfig)
         console.log("✓ Proxy configuration saved")
       } catch (err) {
         console.warn("Could not save proxy config:", err)
@@ -546,7 +548,7 @@ export default function AnalyzerPage() {
 
   // Endpoint examples using mock data
   const loadHREndpointExample = () => {
-    setBaseUrl("http://localhost:8000")
+    setBaseUrl(API_URL)
     setEndpointPath("/mock/users")
     setHttpMethod("GET")
     setAuthType("none")
@@ -554,7 +556,7 @@ export default function AnalyzerPage() {
   }
 
   const loadActivityEndpointExample = () => {
-    setBaseUrl("http://localhost:8000")
+    setBaseUrl(API_URL)
     setEndpointPath("/mock/activity")
     setHttpMethod("GET")
     setAuthType("none")
@@ -562,7 +564,7 @@ export default function AnalyzerPage() {
   }
 
   const loadProductsEndpointExample = () => {
-    setBaseUrl("http://localhost:8000")
+    setBaseUrl(API_URL)
     setEndpointPath("/mock/products")
     setHttpMethod("GET")
     setAuthType("none")
@@ -579,7 +581,7 @@ export default function AnalyzerPage() {
       ],
     }
     setJsonSample(JSON.stringify(exampleSample, null, 2))
-    setJsonBaseUrl("http://localhost:8000")
+    setJsonBaseUrl(API_URL)
     setJsonEndpointPath("/mock/users")
     setJsonHttpMethod("GET")
   }
@@ -593,7 +595,7 @@ export default function AnalyzerPage() {
       ],
     }
     setJsonSample(JSON.stringify(exampleSample, null, 2))
-    setJsonBaseUrl("http://localhost:8000")
+    setJsonBaseUrl(API_URL)
     setJsonEndpointPath("/mock/activity")
     setJsonHttpMethod("GET")
   }
@@ -607,7 +609,7 @@ export default function AnalyzerPage() {
       ],
     }
     setJsonSample(JSON.stringify(exampleSample, null, 2))
-    setJsonBaseUrl("http://localhost:8000")
+    setJsonBaseUrl(API_URL)
     setJsonEndpointPath("/mock/products")
     setJsonHttpMethod("GET")
   }
