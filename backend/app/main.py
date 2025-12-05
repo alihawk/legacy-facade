@@ -35,12 +35,14 @@ app.include_router(mock_data_router, tags=["mock-data"])
 
 
 @app.get("/")
+@app.head("/")
 async def root():
     """Health check endpoint."""
     return {"status": "ok", "service": "Backend API Analyzer"}
 
 
 @app.get("/health")
+@app.head("/health")
 async def health():
     """Health check endpoint."""
     return {"status": "healthy"}
