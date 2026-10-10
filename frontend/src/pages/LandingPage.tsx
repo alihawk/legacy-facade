@@ -188,13 +188,6 @@ export default function LandingPage() {
           </Card>
         </div>
 
-        {/* Bottom Info */}
-        <div className="mt-8 text-center">
-          <p className="text-gray-500 text-sm">
-            Built for <span className="text-cyan-400 font-semibold">Kiroween 2025</span> • Powered by{" "}
-            <span className="text-purple-400 font-semibold">Kiro AI</span>
-          </p>
-        </div>
       </div>
     </div>
   )

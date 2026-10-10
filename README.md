@@ -1,6 +1,6 @@
-# 🎃 Legacy UX Reviver
+# Legacy UX Reviver
 
-**Kiroween 2025 Hackathon Project** - Resurrection Category
+Originally built for a 2025 hackathon (Resurrection category).
 
 > Bring your dead APIs back to life with beautiful, modern UIs. No backend changes required.
 
@@ -9,46 +9,46 @@
 [![Backend](https://img.shields.io/badge/backend-FastAPI-green)](backend/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-## 🌟 The Problem
+## The Problem
 
 Companies have internal tools from 2010 with terrible UIs. The backend APIs work fine, but the UX makes employees miserable. Full rewrites cost $100K+ and take months. Productivity suffers because people hate using the tools.
 
-## 💡 The Solution
+## The Solution
 
 **Auto-generate modern React frontends from existing legacy APIs with ZERO backend changes.** Deploy in days, not months.
 
-## ✨ Key Features
+## Key Features
 
-### 🔍 Multi-Protocol API Analysis
+### Multi-Protocol API Analysis
 - **REST APIs** - OpenAPI/Swagger specs, live endpoints, or JSON samples
 - **SOAP APIs** - WSDL files, WSDL URLs, SOAP endpoints, or XML samples
 - **Smart Introspection** - Automatically discovers resources, fields, and operations
 - **Type Inference** - Detects field types (email, date, number, boolean, URL, etc.)
 
-### 🎨 Schema Review & Customization
+### Schema Review & Customization
 - **Interactive Schema Editor** - Review and modify detected resources
 - **Field Management** - Show/hide fields, change types, set primary keys
 - **Operation Control** - Enable/disable CRUD operations per resource
 - **Read-Only Mode** - Configure resources as view-only
 
-### 🎯 UI Customization
+### UI Customization
 - **Dashboard Features** - Toggle stats cards, charts, and activity logs
 - **List View Options** - Bulk selection, bulk delete, CSV export
 - **Smart Field Rendering** - Automatic formatting for dates, emails, URLs, booleans
 - **Theme Selection** - Light, dark, or spooky mode with accent colors
 
-### 🚀 Deployment Options
+### Deployment Options
 - **Download Project** - Get a complete standalone React + Node.js project
 - **Deploy to Vercel** - One-click deployment with automatic configuration
 - **Proxy Server Included** - Smart proxy handles authentication and CORS
 
-### 🔐 Authentication & Security
+### Authentication & Security
 - **Multiple Auth Types** - Bearer tokens, API keys, Basic auth, WSSE (SOAP)
 - **Proxy Layer** - Secure backend-to-backend communication
 - **CORS Handling** - No more browser CORS issues
 - **Field Mapping** - Transform legacy field names to modern conventions
 
-### 📊 Advanced Features
+### Advanced Features
 - **Bulk Actions** - Select multiple items, bulk delete, CSV export
 - **Activity Logging** - Track all operations and changes
 - **Resource Settings** - Per-resource UI configuration
@@ -56,7 +56,7 @@ Companies have internal tools from 2010 with terrible UIs. The backend APIs work
 - **Pagination** - Handle large datasets efficiently
 - **Sorting** - Click column headers to sort
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -137,7 +137,7 @@ Companies have internal tools from 2010 with terrible UIs. The backend APIs work
    - Proxy forwards to legacy API
    - Handles auth, CORS, field mapping
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -197,7 +197,7 @@ npm install
 npm run dev
 ```
 
-## 📖 Usage Guide
+## Usage Guide
 
 ### Step 1: Choose API Type
 
@@ -341,7 +341,7 @@ Navigate through your resources:
 - Delete selected items
 - Clear selection
 
-## 🧪 Testing
+## Testing
 
 ### Backend Tests
 
@@ -357,12 +357,12 @@ pytest tests/test_endpoint_analyzer.py -v
 ```
 
 **Test Coverage:**
-- ✅ 219 tests passing
-- ✅ Integration tests for all 4 modes
-- ✅ Property-based tests with Hypothesis
-- ✅ Unit tests for all services
-- ✅ Authentication tests
-- ✅ Error handling tests
+- 219 tests passing
+- Integration tests for all 4 modes
+- Property-based tests with Hypothesis
+- Unit tests for all services
+- Authentication tests
+- Error handling tests
 
 ### Frontend Tests
 
@@ -479,7 +479,7 @@ npm start  # Runs on http://localhost:3001
 - Environment variables for secrets
 - No server management
 
-## 📚 API Documentation
+## API Documentation
 
 Once the backend is running, visit:
 - **Interactive Docs**: http://localhost:8000/docs
@@ -600,7 +600,7 @@ DELETE /proxy/{resource}/{id}
 
 Forwards requests to legacy API with authentication and field mapping.
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Frontend
 - **React 19** - UI framework
@@ -621,7 +621,7 @@ Forwards requests to legacy API with authentication and field mapping.
 - **pytest** - Testing framework
 - **Hypothesis** - Property-based testing
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 legacy-facade/
@@ -763,33 +763,12 @@ legacy-facade/
 │   ├── deploy_frontend.sh            # Frontend deployment
 │   └── test_soap_validation.sh       # SOAP testing
 │
-├── .kiro/                            # Kiro AI configuration
-│   ├── specs/                        # Feature specifications
-│   │   ├── api-introspection/
-│   │   ├── smart-proxy-layer/
-│   │   ├── vercel-deployment/
-│   │   ├── schema-customization/
-│   │   └── ui-enhancement/
-│   │
-│   ├── steering/                     # Development guidelines
-│   │   ├── project-overview.md
-│   │   ├── tech.md
-│   │   ├── structure.md
-│   │   └── ...
-│   │
-│   ├── summary-documents/            # Documentation archive
-│   │   └── PROJECT_CLEANUP_SUMMARY.md
-│   │
-│   └── hooks/                        # Git hooks
-│       ├── lint-on-save.json
-│       └── build-check.json
-│
 ├── .gitignore                        # Git ignore rules
 ├── LICENSE                           # MIT License
 └── README.md                         # This file
 ```
 
-## 🎯 Use Cases
+## Use Cases
 
 1. **Internal Tools Modernization**
    - HR systems from 2010
@@ -811,34 +790,34 @@ legacy-facade/
    - Plan gradual migration
    - Maintain old UI during rewrite
 
-## 🔒 Security
+## Security
 
-- ✅ CORS properly configured
-- ✅ Input validation with Pydantic
-- ✅ Request size limits (10MB)
-- ✅ Timeout protection (30s)
-- ✅ Credentials never persisted
-- ✅ SSRF prevention (TODO)
-- ✅ Rate limiting (TODO)
+- CORS properly configured
+- Input validation with Pydantic
+- Request size limits (10MB)
+- Timeout protection (30s)
+- Credentials never persisted
+- SSRF prevention (TODO)
+- Rate limiting (TODO)
 
-## ✅ Completed Features
+## Completed Features
 
-- ✅ **REST API Support** - OpenAPI, endpoints, JSON samples
-- ✅ **SOAP API Support** - WSDL, SOAP endpoints, XML samples
-- ✅ **Schema Review** - Interactive field and operation editing
-- ✅ **UI Customization** - Dashboard, list view, theme configuration
-- ✅ **Smart Proxy Layer** - Authentication, CORS, field mapping
-- ✅ **Download Project** - Complete standalone React + Node.js project
-- ✅ **Vercel Deployment** - One-click deployment with serverless functions
-- ✅ **Bulk Actions** - Multi-select, bulk delete, CSV export
-- ✅ **Activity Logging** - Track all operations
-- ✅ **Smart Field Rendering** - Auto-format dates, emails, URLs, booleans
-- ✅ **LLM Field Cleaning** - AI-powered field name beautification
-- ✅ **Multiple Auth Types** - Bearer, API Key, Basic, WSSE
-- ✅ **Type Inference** - Automatic field type detection
-- ✅ **Primary Key Detection** - Smart ID field identification
+- **REST API Support** - OpenAPI, endpoints, JSON samples
+- **SOAP API Support** - WSDL, SOAP endpoints, XML samples
+- **Schema Review** - Interactive field and operation editing
+- **UI Customization** - Dashboard, list view, theme configuration
+- **Smart Proxy Layer** - Authentication, CORS, field mapping
+- **Download Project** - Complete standalone React + Node.js project
+- **Vercel Deployment** - One-click deployment with serverless functions
+- **Bulk Actions** - Multi-select, bulk delete, CSV export
+- **Activity Logging** - Track all operations
+- **Smart Field Rendering** - Auto-format dates, emails, URLs, booleans
+- **LLM Field Cleaning** - AI-powered field name beautification
+- **Multiple Auth Types** - Bearer, API Key, Basic, WSSE
+- **Type Inference** - Automatic field type detection
+- **Primary Key Detection** - Smart ID field identification
 
-## 🚧 Roadmap
+## Roadmap
 
 - [ ] **Spec Drift Detection** - Compare OpenAPI spec with live API
 - [ ] **Custom Transformations** - User-defined data mapping rules
@@ -851,7 +830,7 @@ legacy-facade/
 - [ ] **Documentation Generator** - Auto-generate API docs
 - [ ] **Migration Assistant** - Help plan API migrations
 
-## 🤝 Contributing
+## Contributing
 
 This is a hackathon project, but contributions are welcome!
 
@@ -861,26 +840,21 @@ This is a hackathon project, but contributions are welcome!
 4. Add tests
 5. Submit a pull request
 
-## 📄 License
+## License
 
 MIT License - see LICENSE file for details
 
-## 🎃 Hackathon Categories
+## Hackathon Categories
 
-- ✅ **Resurrection** - Bringing dead UIs back to life
-- ✅ **Frankenstein** - Stitching APIs + UIs together
-- ✅ **Best Startup Project** - Solves real business problem
+- **Resurrection** - Bringing dead UIs back to life
+- **Frankenstein** - Stitching APIs + UIs together
+- **Best Startup Project** - Solves real business problem
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- Built with [Kiro](https://kiro.dev) - AI-powered development environment
 - Inspired by companies struggling with legacy internal tools
-- Halloween theme because resurrecting dead code is spooky 👻
 
-## 📞 Support
+## Support
 
 For questions or issues, please open a GitHub issue.
 
----
-
-**Made with 💀 for Kiroween 2025**
